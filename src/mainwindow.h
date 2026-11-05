@@ -6,6 +6,7 @@
 
 class AudioSession;
 class TranscriptionService;
+class ModelCatalog;
 class Waveform;
 class QAudioOutput;
 class QMediaPlayer;
@@ -34,6 +35,7 @@ public:
     void setPlaybackPosition(qint64 ms);
     bool isDirty()const{return m_dirty;}
     QString settingsDirectory()const{return m_configDir;}
+    ModelCatalog *modelCatalog()const{return m_modelCatalog;}
 protected:
     void closeEvent(QCloseEvent*) override;
     void dragEnterEvent(QDragEnterEvent*) override;
@@ -54,6 +56,7 @@ private:
     void updatePosition(qint64 position);
     void updateBusy();
     void updateLanguages();
+    void refreshModelChoices(const QString &preferredId=QString(),const QString &preferredLanguage=QString());
     void changeText();
     void pushUndo();
     void undo();
@@ -81,6 +84,7 @@ private:
     void navigate(int direction);
     void showTimingCheck();
     void showSettings();
+    void showModels(QWidget *dialogParent=nullptr);
     void showAbout();
     void showShortcuts();
     void showError(const QString &message);
@@ -105,6 +109,7 @@ private:
     QTimer m_typingTimer,m_autosaveTimer,m_playTimer;
     AudioSession *m_audio=nullptr;
     TranscriptionService *m_stt=nullptr;
+    ModelCatalog *m_modelCatalog=nullptr;
     QMediaPlayer *m_player=nullptr;
     QAudioOutput *m_output=nullptr;
     QSettings *m_settings=nullptr;
@@ -112,7 +117,7 @@ private:
     QPlainTextEdit *m_text=nullptr;
     QLineEdit *m_start=nullptr,*m_end=nullptr,*m_search=nullptr;
     QLabel *m_sourceLabel=nullptr,*m_sourceDetail=nullptr,*m_clock=nullptr,*m_cueTitle=nullptr,*m_stats=nullptr,*m_summary=nullptr,*m_status=nullptr,*m_modelHint=nullptr;
-    QPushButton *m_transcribe=nullptr,*m_cancel=nullptr,*m_play=nullptr,*m_review=nullptr;
+    QPushButton *m_transcribe=nullptr,*m_cancel=nullptr,*m_play=nullptr,*m_review=nullptr,*m_manageModels=nullptr;
     QComboBox *m_model=nullptr,*m_language=nullptr,*m_speed=nullptr,*m_zoom=nullptr;
     QCheckBox *m_loop=nullptr,*m_follow=nullptr,*m_unreviewed=nullptr;
     QProgressBar *m_progress=nullptr;

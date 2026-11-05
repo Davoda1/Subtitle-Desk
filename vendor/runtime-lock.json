@@ -1,5 +1,5 @@
 {
-  "application": "Subtitle Desk 1.0.0",
+  "application": "Subtitle Desk 1.1.0",
   "baseline": "Speech Desk 1.1.1",
   "baseline_source": "https://github.com/Davoda1/Speech-Desk/tree/fcd78d0",
   "qt": "6.8.3",

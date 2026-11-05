@@ -1,6 +1,6 @@
-# Subtitle Desk 1.0.0
+# Subtitle Desk 1.1.0
 
-Subtitle Desk turns local audio and video into editable subtitles and synchronized lyric lines. Recognize speech, then listen while correcting words and timing. The Windows and Linux packages include four CPU models; after installation, the application needs no account, API key, network connection, or model download.
+Subtitle Desk turns local audio and video into editable subtitles and synchronized lyric lines. Recognize speech, then listen while correcting words and timing. The Windows and Linux packages include four CPU models, and the Models manager can install additional compatible local files. After installation, the application needs no account, API key, network connection, or model download.
 
 ## Start the application
 
@@ -32,6 +32,30 @@ If you already have subtitles, open the media and choose **File → Import subti
 Choose the language or leave **Auto language** selected. Use Whisper for languages outside Whistle's supported set. Click **Transcribe**; the status area shows progress and **Cancel** stops the job. Existing cues remain intact if recognition fails, is cancelled, or returns no speech. A successful replacement can be undone.
 
 Singing, music, reverberation, overlapping voices, and unfamiliar names can produce incorrect words. Review the result before sharing it. Whistle supplies recognized word timing; Whisper supplies segment timing. All recognition timings are estimates. Editing and exports use complete cues; automatic word-by-word karaoke alignment and speaker diarization are not provided.
+
+## Install and manage additional models
+
+Click **Models…** next to the main model selector, or choose **View → Models…**. The manager lists bundled and imported models with their recognizer family and file size. Choose **Import model…**, select a file, and optionally set its display name.
+
+The supported inputs are raw **whisper.cpp GGML `.bin` speech models** and compatible **Whistle `.cact` audio models**. A compatible Whisper model can be quantized, multilingual, or English-only. A `.cact` file must contain the Whistle audio manifest; a general Needle text model is not compatible. Files must work with the bundled engine versions. Renaming a PyTorch `.pt`, Safetensors, general-purpose GGUF/LLM, ZIP, or executable file does not make it a supported model.
+
+The app copies the file into its own model storage, validates the structure, calculates a SHA-256 content identifier, and runs the bundled recognizer against short silence to check that it loads. Validation does not assess recognition accuracy. **Files must be between 1 MB and 8 GiB**, and engine validation stops after **five minutes**. Keep enough free disk space for a complete copy and enough memory for the model. Larger models can be much slower on a CPU.
+
+Progress appears in the manager. **Cancel** stops an in-progress import and removes its unfinished copy. An error leaves the existing catalog intact. Your original file is never modified or deleted. A model becomes selectable only after installation succeeds; importing the same content again selects the existing installation. The application does not download models or convert other model formats.
+
+Select an imported model in the main model selector to use it for transcription. English-only Whisper files are identified from their headers and offer only Auto/English; multilingual Whisper uses the normal language list, and Whistle offers its seven supported languages. Any recognition result should still be checked against the audio.
+
+To uninstall an imported model, select it in the manager and choose **Remove…**, then confirm. This removes the installed copy and its metadata, not the original file. Bundled models cannot be removed here. A model used by an active transcription job cannot be removed until that job ends or is cancelled. This protection also applies when another copy of Subtitle Desk is open. An imported model can be used for recognition by one application instance at a time; if another instance is using it, wait for that job to finish.
+
+| Storage mode | Installed models |
+| --- | --- |
+| Windows | `%AppData%\SubtitleDesk\models` |
+| Linux | `~/.config/SubtitleDesk/models`, respecting `XDG_CONFIG_HOME` |
+| Portable, with `portable.flag` | `data/models` beside the executable |
+
+Projects store the selected model's content-based identifier, not its weights or an absolute installation path. When moving a project to another computer, install the same model there or choose a different available model. If the saved model is unavailable, the app shows that state and disables transcription until a model is available; existing subtitle text and timing remain editable. Reinstalling identical content restores the same identifier.
+
+Only install models from sources you trust. Imported model weights retain their own licenses; the application's AGPL license does not replace them. They are not embedded in projects, subtitle exports, or the application's distributed packages.
 
 ## 3. Listen and review
 
@@ -88,7 +112,7 @@ CSV prefixes formula-like cell values with an apostrophe so spreadsheet software
 
 ## Settings, recovery, and privacy
 
-**View → Settings…** controls System, Light, or Dark appearance and recognition CPU threads. Window geometry, panel sizes, model, language, and volume are remembered under `%AppData%\SubtitleDesk` on Windows or `~/.config/SubtitleDesk` on Linux (respecting `XDG_CONFIG_HOME`). To keep these files beside a portable application, create an empty `portable.flag` beside the executable before launch; settings and recovery then use its writable `data` subfolder.
+**View → Settings…** controls System, Light, or Dark appearance and recognition CPU threads. Window geometry, panel sizes, model, language, and volume are remembered under `%AppData%\SubtitleDesk` on Windows or `~/.config/SubtitleDesk` on Linux (respecting `XDG_CONFIG_HOME`). To keep these files beside a portable application, create an empty `portable.flag` beside the executable before launch; settings, recovery, and imported models then use its writable `data` subfolder.
 
 Unsaved edits are written to a recovery project approximately every 20 seconds. After an interrupted session, the next launch offers to restore it. Save a project explicitly before moving between computers; recovery does not copy your original audio. The application has no telemetry, cloud transcription, or credential storage. Projects and exports contain your text and can contain media paths; review those files before sharing them.
 
@@ -106,4 +130,4 @@ Source builds also need the native engines, models, and multimedia components. S
 
 Subtitle Desk is licensed under the GNU Affero General Public License, version 3 only (`AGPL-3.0-only`). Copyright (c) 2026 davoda1. The source includes `LICENSE` and `NOTICE`; runtime packages include `LICENSE.txt` and `NOTICE.txt`.
 
-Qt, recognition engines, models, and multimedia libraries retain their respective copyright notices and licenses. Keep the included `licenses` directory, application license, and copyright notices with redistributed binaries. Application source is available from the [Subtitle Desk repository](https://github.com/Davoda1/Subtitle-Desk).
+Qt, recognition engines, models, and multimedia libraries retain their respective copyright notices and licenses. Keep the included `licenses` directory, application license, and copyright notices with redistributed binaries. The corresponding 1.1.0 application source is supplied in `SubtitleDesk-1.1.0-Source.zip` and `SubtitleDesk-1.1.0-Source.tar.gz` alongside the binary packages. The [Subtitle Desk repository](https://github.com/Davoda1/Subtitle-Desk) is the project home.

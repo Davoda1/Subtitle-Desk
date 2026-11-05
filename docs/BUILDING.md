@@ -1,4 +1,4 @@
-# Building Subtitle Desk 1.0.0
+# Building Subtitle Desk 1.1.0
 
 Run these commands from the extracted source directory containing `CMakeLists.txt`. The source archive contains the application, tests, build scripts, license notices, and the FFmpeg public headers it uses. It does **not** include model weights, recognition executables, a Qt SDK, or a compiler.
 
@@ -53,14 +53,14 @@ python3 packaging/validate_package.py --platform linux --path dist/linux
 To archive this layout without a wrapper directory:
 
 ```sh
-tar -C dist/linux -czf SubtitleDesk-1.0.0-Linux-amd64.tar.gz .
+tar -C dist/linux -czf SubtitleDesk-1.1.0-Linux-amd64.tar.gz .
 ```
 
 The Debian layout uses a real `/usr/bin/subtitledesk` executable and `/usr/lib/subtitledesk/` for its libraries, plugins, and resources. With `dpkg-deb` installed, package the staged portable tree using:
 
 ```sh
 python3 packaging/make_deb.py --portable dist/linux \
-  --output dist/SubtitleDesk-1.0.0-Linux-amd64.deb
+  --output dist/SubtitleDesk-1.1.0-Linux-amd64.deb
 ```
 
 These commands create packages; they do not install files into the system.
@@ -102,15 +102,15 @@ The compiler option locates and copies that compiler's GCC, C++, and threading r
 
 ```powershell
 Compress-Archive -Path '.\dist\windows\*' `
-  -DestinationPath '.\SubtitleDesk-1.0.0-Windows-x64.zip' `
+  -DestinationPath '.\SubtitleDesk-1.1.0-Windows-x64.zip' `
   -CompressionLevel Optimal
 ```
 
-See the [Actions results](https://github.com/Davoda1/Subtitle-Desk/actions) for the status of native Linux and Windows checks on a particular commit. Build success and offscreen testing do not replace an interactive desktop and audio-output check.
+The repository includes the native Linux/Windows workflow. See [Actions](https://github.com/Davoda1/Subtitle-Desk/actions) for the results of a particular commit. Build success and offscreen testing do not replace an interactive desktop and audio-output check.
 
 ## Running the tests
 
-The native Linux and Windows workflow builds the application and runs its CTest suite. Configure with `SUBTITLEDESK_RUNTIME_ROOT` as shown above to enable runtime-dependent checks. The suite then covers document formats, the editor's complete media workflow, synthetic media decoding, recognition with all four models, and cancellation. A short synthetic English speech fixture is included under `tests/fixtures`; it contains no user recording.
+The native Linux and Windows workflow builds the application and runs its CTest suite. Configure with `SUBTITLEDESK_RUNTIME_ROOT` as shown above to enable runtime-dependent checks. The suite then covers document formats, the editor's complete media workflow, synthetic media decoding, recognition with all four bundled models, custom model catalog behavior, and cancellation. A short synthetic English speech fixture is included under `tests/fixtures`; it contains no user recording.
 
 CTest also runs the Python package-boundary tests and verifies the pinned runtime. The workflow stages and validates a portable package, then launches it with `packaging/smoke_package.py` using its own runtime and captures the demonstration editor. This distinguishes a build that works with the development SDK from a package that can start with its bundled dependencies.
 
@@ -135,6 +135,30 @@ build/linux/test_transcription "$SUBTITLEDESK_RESOURCES" /path/to/speech-16k-mon
 ```
 
 On Windows use `build/windows/test_transcription.exe` with the same positional arguments. Adding `--cancel` checks cancellation without emitting a partial transcript. A normal non-silent speech test requires at least one valid returned cue. Also listen through actual playback on the target desktop; an offscreen test does not establish audio-device behavior or recognition accuracy on your material.
+
+### Additional-model integration checks
+
+Catalog input validation tests run without downloading an extra model. To exercise successful installation, English-only language selection, persistent reload, duplicate handling, removal locks, and real imported-model transcription, configure with `SUBTITLEDESK_TEST_IMPORT_MODEL` as well as `SUBTITLEDESK_RUNTIME_ROOT`:
+
+```sh
+python3 tests/fetch_test_model.py build-assets/test-models
+cmake -S . -B build/linux \
+  -DSUBTITLEDESK_TEST_IMPORT_MODEL="$PWD/build-assets/test-models/ggml-tiny.en-q5_1.bin"
+cmake --build build/linux --parallel
+ctest --test-dir build/linux --output-on-failure
+```
+
+Use `py -3` and `build/windows` on Windows. The fetch script explicitly downloads one SHA-256-pinned upstream Tiny.en Q5_1 file for testing; it is not invoked by the application and the file is not included in the release packages. The CI workflow configures this fixture for both platforms. Without it, real import cases report skips and the two imported transcription CTest entries are not registered.
+
+The transcription driver also accepts an import directly:
+
+```sh
+build/linux/test_transcription "$SUBTITLEDESK_RESOURCES" \
+  tests/fixtures/speech.wav imported \
+  --import-model /path/to/compatible-whisper.bin
+```
+
+Add `--cancel` to test cancellation and release of the model's in-use lock. `SUBTITLEDESK_TEST_IMPORT_MODEL` should refer to the pinned English-only Whisper test fixture when running the complete regression suite; arbitrary compatible models are suitable for the direct transcription driver, but may not satisfy fixture-specific assertions.
 
 ## Dependency sources and redistribution
 

@@ -1,16 +1,17 @@
 ![Subtitle Desk — Local transcription. Precise subtitles.](docs/images/banner.png)
 
-# Subtitle Desk
+# Subtitle Desk 1.1.0
 
 **Turn local audio and video into editable subtitles and synchronized lyrics.**
 
-Subtitle Desk is a native C++/Qt desktop application for transcribing a file, listening back, and correcting its words and timing in one workspace. Four CPU speech models are bundled with the Windows and Linux packages. Recognition runs locally, with no account, API key, telemetry, or model download required after installation.
+Subtitle Desk is a native C++/Qt desktop application for transcribing a file, listening back, and correcting its words and timing in one workspace. Four CPU speech models are bundled with the Windows and Linux packages, and you can install additional compatible model files through the Models manager. Recognition runs locally, with no account, API key, telemetry, or model download required after installation.
 
-[Download 1.0.0](https://github.com/Davoda1/Subtitle-Desk/releases/tag/v1.0.0) · [User guide](docs/README.md) · [Build instructions](docs/BUILDING.md) · [Automated checks](https://github.com/Davoda1/Subtitle-Desk/actions) · [Changelog](CHANGELOG.md)
+[Download 1.1.0](https://github.com/Davoda1/Subtitle-Desk/releases/tag/v1.1.0) · [User guide](docs/README.md) · [Install your own models](#install-your-own-models) · [Build instructions](docs/BUILDING.md) · [Tests and verification](docs/Verification.md) · [Changelog](CHANGELOG.md)
 
 ## Features
 
 - **Local transcription:** Cactus Whistle and multilingual Whisper Tiny, Base, and Small, all running on the CPU.
+- **Your own models:** import compatible whisper.cpp GGML `.bin` or Whistle `.cact` files, validate them with the bundled engine, and select them alongside the four bundled choices.
 - **Audio-focused review:** waveform seeking, active-cue highlighting, cue replay and looping, and playback from 0.5× to 2× speed. Listening does not move your text-editing selection.
 - **Direct editing:** change text and start/end times; set boundaries from the playhead; add, split, merge, delete, sort, or shift cues; undo and redo changes.
 - **Review tools:** search cue text, mark checked cues, filter remaining work, and inspect timing and readability warnings.
@@ -31,7 +32,11 @@ The running application, showing its built-in demonstration content.
 ![Subtitle Desk in light theme, with waveform, timed cues, and the cue editor](docs/images/editor-light.png)
 
 <details>
-<summary>Settings and export options</summary>
+<summary>Models, settings, and export options</summary>
+
+**Models**
+
+![Subtitle Desk Models manager with four bundled models and an imported English-only Whisper model](docs/images/models-imported.png)
 
 **Settings**
 
@@ -45,23 +50,23 @@ The running application, showing its built-in demonstration content.
 
 ## Download and install
 
-Get the complete package for your platform from [Releases](https://github.com/Davoda1/Subtitle-Desk/releases). Keep the executable and its accompanying folders together.
+Download the complete 1.1.0 package for your platform from [Releases](https://github.com/Davoda1/Subtitle-Desk/releases/tag/v1.1.0). Keep the executable and its accompanying folders together.
 
 | Platform | Package | Start |
 | --- | --- | --- |
-| Windows 10/11, x64 | `SubtitleDesk-1.0.0-Windows-x64.zip` | Extract the ZIP and open `SubtitleDesk.exe` at its root. |
-| GNU/Linux, x86-64 | `SubtitleDesk-1.0.0-Linux-amd64.tar.gz` | Extract the archive and run the `subtitledesk` binary at its root. |
-| Debian-compatible GNU/Linux, amd64 | `SubtitleDesk-1.0.0-Linux-amd64.deb` | Install the package and open Subtitle Desk from the application menu. |
+| Windows 10/11, x64 | `SubtitleDesk-1.1.0-Windows-x64.zip` | Extract the ZIP and open `SubtitleDesk.exe` at its root. |
+| GNU/Linux, x86-64 | `SubtitleDesk-1.1.0-Linux-amd64.tar.gz` | Extract the archive and run the `subtitledesk` binary at its root. |
+| Debian-compatible GNU/Linux, amd64 | `SubtitleDesk-1.1.0-Linux-amd64.deb` | Install the package and open Subtitle Desk from the application menu. |
 
 On Debian-compatible systems, install the downloaded package with:
 
 ```sh
-sudo apt install ./SubtitleDesk-1.0.0-Linux-amd64.deb
+sudo apt install ./SubtitleDesk-1.1.0-Linux-amd64.deb
 ```
 
 The Debian package installs a real executable at `/usr/bin/subtitledesk` and supporting files under `/usr/lib/subtitledesk`. Linux requires a graphical desktop and system audio libraries; Qt, the decoder, and recognition models are included. Build and runtime compatibility details are in the [build guide](docs/BUILDING.md).
 
-The release provides a single SHA-256 checksum manifest. Source archives contain the application, tests, and build scripts; model weights and the Qt SDK are acquired separately when building from source.
+The distribution provides a single SHA-256 checksum manifest. Source archives contain the application, tests, and build scripts; model weights and the Qt SDK are acquired separately when building from source.
 
 ## First transcription
 
@@ -88,6 +93,21 @@ All four models run without a GPU. The sizes below are the model files alone, ro
 
 Whisper supplies segment timestamps. All recognition timings are estimates and should be checked against the audio. Singing, background music, overlapping voices, and unfamiliar names can require substantial correction. The editor produces line-timed lyrics and subtitles; it does not provide automatic word-level karaoke alignment or speaker diarization.
 
+## Install your own models
+
+Choose **Models…** beside the model selector or **View → Models…**, then **Import model…**. Select a compatible model file and optionally give it a display name. The application copies it into its model storage, checks its structure, and asks the bundled engine to load it. Progress and cancellation remain available while it works. Only a successful import adds a selectable model.
+
+| Accepted file | Requirements |
+| --- | --- |
+| Whisper `.bin` | A whisper.cpp GGML speech model supported by the bundled recognizer, including compatible quantized, English-only, and multilingual variants. |
+| Whistle `.cact` | A compatible Whistle audio model with the required audio manifest; a general Needle text model is not sufficient. |
+
+A filename extension alone does not establish compatibility. PyTorch `.pt`, Safetensors, general-purpose GGUF/LLM files, archives, and executables are not supported. Files must be between **1 MB and 8 GiB**, and engine validation has a **five-minute limit**. Larger compatible models can need much more memory and CPU time than the bundled choices. The application does not convert model formats or download models.
+
+An imported file is copied; your original is left in place. Duplicate content reuses the existing installation. Imported models can be removed through the manager when they are not being used by a transcription job; bundled models are protected. A model-use lock also protects imported weights across running application instances, allowing one instance at a time to transcribe with a given imported model. English-only Whisper models offer Auto/English, while Whistle retains its seven-language selection. Obtain models from a source you trust and follow their own licenses.
+
+Models are stored in the `models` subfolder of the [application data location](#settings-and-privacy). Projects save a model's stable identifier, not its weights or installation path. Opening a project without that model preserves its cue data and shows the unavailable choice; install the matching model or choose another before transcribing.
+
 ## Formats
 
 | Format | Import | Export | Timing and purpose |
@@ -104,7 +124,7 @@ Exports use UTF-8. Imported subtitle effects and styling become plain editable t
 
 ## Settings and privacy
 
-Settings and recovery are stored in `%AppData%\SubtitleDesk` on Windows or `~/.config/SubtitleDesk` on Linux, respecting `XDG_CONFIG_HOME`. To keep them beside a portable executable, create an empty `portable.flag` file before launch; the application uses a writable `data` subfolder instead.
+Settings, recovery, and imported models are stored in `%AppData%\SubtitleDesk` on Windows or `~/.config/SubtitleDesk` on Linux, respecting `XDG_CONFIG_HOME`. To keep them beside a portable executable, create an empty `portable.flag` file before launch; the application uses a writable `data` subfolder instead.
 
 Transcription and decoding are local. No cloud service, credential storage, or telemetry is used. Temporary decoded audio is removed when its session ends normally. Saved projects and exports contain your text and may contain media paths, so review them before sharing.
 
@@ -112,7 +132,7 @@ Transcription and decoding are local. No cloud service, credential storage, or t
 
 The application uses **C++17, CMake 3.22+, and Qt 6.8.3** for the supplied runtime. Build on Linux with GCC or on Windows with the matching MinGW toolchain. The [build guide](docs/BUILDING.md) covers runtime acquisition, native builds, packaging, and tests.
 
-Automated checks cover document formats, editor behavior, media decoding, real speech recognition with all four bundled models, and packaging. See [test scope and limitations](docs/Verification.md) and the [Actions results](https://github.com/Davoda1/Subtitle-Desk/actions) for the checks applicable to a particular commit.
+Automated checks cover document formats, editor behavior, media decoding, real speech recognition with all four bundled models, custom model import and cancellation, and packaging. The Linux/Windows CI workflow includes the additional-model fixture and integration tests. See [test scope and limitations](docs/Verification.md) and the [Actions results](https://github.com/Davoda1/Subtitle-Desk/actions) for verification of a particular commit.
 
 Bug reports and focused contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for reproduction details and the build workflow, or [SECURITY.md](SECURITY.md) for sensitive reports.
 

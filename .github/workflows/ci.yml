@@ -74,12 +74,14 @@ jobs:
           add-tools-to-path: true
       - name: Download and verify pinned offline runtime
         run: python packaging/fetch_runtime.py ${{ matrix.platform }} build-assets
+      - name: Download and verify optional model import fixture
+        run: python tests/fetch_test_model.py build-assets/test-models
       - name: Configure native application and full test suite
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DSUBTITLEDESK_BUILD_TESTS=ON -DSUBTITLEDESK_RUNTIME_ROOT=build-assets/${{ matrix.platform }}
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DSUBTITLEDESK_BUILD_TESTS=ON -DSUBTITLEDESK_RUNTIME_ROOT=build-assets/${{ matrix.platform }} -DSUBTITLEDESK_TEST_IMPORT_MODEL=build-assets/test-models/ggml-tiny.en-q5_1.bin
       - name: Build native application and tests
         run: cmake --build build --parallel 3
       # Use the native runner shell, so Git Bash DLLs cannot shadow Qt's MinGW runtime.
-      - name: Run document, decoder, editor, and four-model tests
+      - name: Run document, decoder, editor, bundled-model, and custom-model tests
         run: ctest --test-dir build --output-on-failure --parallel 2 --output-junit test-results.xml
       - name: Stage portable package
         run: python packaging/package.py --platform ${{ matrix.platform }} --binary build/${{ matrix.executable }} --runtime-reference build-assets/${{ matrix.platform }} --output build/staging --compiler g++

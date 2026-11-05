@@ -1,4 +1,5 @@
 #include "transcription_service.h"
+#include "model_catalog.h"
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
@@ -48,10 +49,20 @@ bool numberMs(const QJsonValue &value, double scale, qint64 *out) {
 }
 QString displayModel(const QString &id) {
     if (id == "whistle") return QStringLiteral("Whistle");
+    if (id.isEmpty()) return QStringLiteral("Whisper");
     QString title = id; title[0] = title[0].toUpper();
     return QStringLiteral("Whisper ") + title;
 }
 }
+
+struct TranscriptionService::ModelLease {
+    QPointer<ModelCatalog> catalog;
+    // Keep the process-level lock alive even if the catalog is destroyed while
+    // a recognizer is running. Its resource root and model path are captured.
+    std::shared_ptr<QLockFile> lock;
+    QString id;
+    ~ModelLease() { if (catalog) catalog->releaseModel(id); }
+};
 
 TranscriptionService::TranscriptionService(QObject *parent) : QObject(parent) {
     m_timeout.setSingleShot(true);
@@ -66,11 +77,17 @@ TranscriptionService::~TranscriptionService() {
         m_process->kill();
         m_process->waitForFinished(2000);
     }
+    m_modelLease.reset();
 }
 void TranscriptionService::setResourceRoot(const QString &path) {
     if (!m_busy) m_root = QDir(path).absolutePath();
 }
+void TranscriptionService::setModelCatalog(ModelCatalog *catalog) {
+    if (!m_busy) m_catalog = catalog;
+}
 QString TranscriptionService::resourceRoot() const {
+    if (m_busy && !m_workerRoot.isEmpty()) return m_workerRoot;
+    if (m_catalog) return m_catalog->resourceRoot();
     if (!m_root.isEmpty()) return m_root;
     const QDir dir(QCoreApplication::applicationDirPath());
     const QString adjacent = dir.filePath(QStringLiteral("resources"));
@@ -92,6 +109,7 @@ QString TranscriptionService::enginePath(const QString &name) const {
 }
 QString TranscriptionService::availability(const QString &rawModel) const {
     const QString id = modelId(rawModel);
+    if (m_catalog) return m_catalog->availability(id);
     if (!QStringList{"whistle", "tiny", "base", "small"}.contains(id))
         return QStringLiteral("Choose Whistle, Whisper Tiny, Whisper Base, or Whisper Small.");
     const QString weights = QDir(resourceRoot()).filePath(QStringLiteral("models/") +
@@ -108,8 +126,7 @@ QString TranscriptionService::availability(const QString &rawModel) const {
     return {};
 }
 QString TranscriptionService::modelPath() const {
-    return QDir(resourceRoot()).filePath(QStringLiteral("models/") +
-        (m_model == "whistle" ? QStringLiteral("whistle.cact") : QStringLiteral("ggml-%1-q5_1.bin").arg(m_model)));
+    return m_modelPath;
 }
 bool TranscriptionService::inspectWav(const QString &path, WavInfo &info, QString &error) {
     QFile file(path);
@@ -151,26 +168,48 @@ void TranscriptionService::start(const QString &wavPath, const QString &id, cons
     const QString normalized = modelId(id);
     QString error = availability(normalized);
     if (!error.isEmpty()) { emit failed(error); return; }
+    ModelInfo selected;
+    if (m_catalog) selected = m_catalog->model(normalized);
+    else {
+        selected.id = normalized; selected.name = displayModel(normalized); selected.bundled = true;
+        selected.engine = normalized == QStringLiteral("whistle") ? QStringLiteral("whistle") : QStringLiteral("whisper");
+        selected.path = QDir(resourceRoot()).filePath(QStringLiteral("models/") +
+            (normalized == QStringLiteral("whistle") ? QStringLiteral("whistle.cact") : QStringLiteral("ggml-%1-q5_1.bin").arg(normalized)));
+    }
     QString lang = language.trimmed().toLower();
     if (lang.isEmpty()) lang = QStringLiteral("auto");
     if (!QRegularExpression(QStringLiteral("^(auto|[a-z]{2,3})$")).match(lang).hasMatch()) {
         emit failed(QStringLiteral("Choose a valid transcription language.")); return;
     }
-    if (normalized == "whistle" && !QStringList{"auto","en","de","fr","es","it","nl","pl"}.contains(lang)) {
+    if (selected.englishOnly && lang != QStringLiteral("auto") && lang != QStringLiteral("en")) {
+        emit failed(QStringLiteral("This Whisper model recognizes English only. Choose English or automatic language detection, or select a multilingual model.")); return;
+    }
+    if (selected.englishOnly && lang == QStringLiteral("auto")) lang = QStringLiteral("en");
+    if (selected.engine == "whistle" && !QStringList{"auto","en","de","fr","es","it","nl","pl"}.contains(lang)) {
         emit failed(QStringLiteral("Whistle supports English, German, French, Spanish, Italian, Dutch, and Polish. Choose a Whisper model for this language.")); return;
     }
     WavInfo info;
     if (!inspectWav(wavPath, info, error)) { emit failed(error); return; }
     m_temp = std::make_unique<QTemporaryDir>(QDir::tempPath() + QStringLiteral("/subtitle-desk-stt-XXXXXX"));
     if (!m_temp->isValid()) { m_temp.reset(); emit failed(QStringLiteral("A temporary transcription directory could not be created.")); return; }
+    if (m_catalog) {
+        if (!m_catalog->acquireModel(normalized, &selected, &error)) { m_temp.reset(); emit failed(error); return; }
+        m_modelLease = std::make_shared<ModelLease>();
+        m_modelLease->catalog = m_catalog; m_modelLease->id = normalized;
+        m_modelLease->lock = m_catalog->m_leases.value(normalized);
+    }
     m_wav = QFileInfo(wavPath).absoluteFilePath(); m_model = normalized; m_language = lang;
+    m_engine = selected.engine; m_modelPath = selected.path; m_modelName = selected.name;
+    m_workerRoot = resourceRoot();
     m_info = info; m_threads = qBound(1, threads, 32); m_maxChars = qBound(16, maxChars, 160);
     m_busy = true; m_cancelling = false; m_approximate = false; ++m_generation; m_cues.clear();
     m_coreStart = 0; m_coreEnd = 0;
-    emit progress(0, QStringLiteral("Loading %1 · processing locally on the CPU…").arg(displayModel(m_model)));
-    if (m_model == "whistle") runWhistleChunk(); else runWhisper();
+    emit progress(0, QStringLiteral("Loading %1 · processing locally on the CPU…").arg(m_modelName));
+    if (!m_busy || m_cancelling) return;
+    if (m_engine == "whistle") runWhistleChunk(); else runWhisper();
 }
 void TranscriptionService::runWhisper() {
+    if (!m_busy || m_cancelling || !m_temp) return;
     const QString base = m_temp->filePath(QStringLiteral("transcript"));
     const QStringList args {QStringLiteral("-m"), modelPath(), QStringLiteral("-f"), m_wav,
         QStringLiteral("-l"), m_language, QStringLiteral("-oj"), QStringLiteral("-of"), base,
@@ -215,7 +254,7 @@ void TranscriptionService::startWorker(const QString &program, const QStringList
         }
     });
     // Allow long recordings and slower CPUs; Whistle runs in bounded chunks.
-    m_timeout.start(m_model == "whistle" ? 10 * 60 * 1000 : 6 * 60 * 60 * 1000);
+    m_timeout.start(m_engine == "whistle" ? 10 * 60 * 1000 : 6 * 60 * 60 * 1000);
     p->start();
 }
 void TranscriptionService::collectOutput() {
@@ -225,12 +264,12 @@ void TranscriptionService::collectOutput() {
     m_stderr += errors;
     if (m_stdout.size() > StdoutLimit) { abortWithError(QStringLiteral("The recognition engine produced too much output.")); return; }
     if (m_stderr.size() > StderrLimit) m_stderr = m_stderr.right(StderrLimit);
-    if (m_model != "whistle" && !m_cancelling) {
+    if (m_engine != "whistle" && !m_cancelling) {
         static const QRegularExpression re(QStringLiteral("progress\\s*=\\s*([0-9]{1,3})%"));
         auto matches = re.globalMatch(QString::fromUtf8(errors));
         int last = -1;
         while (matches.hasNext()) last = qBound(0, matches.next().captured(1).toInt(), 99);
-        if (last >= 0) emit progress(last, QStringLiteral("Transcribing with %1 · %2%").arg(displayModel(m_model)).arg(last));
+        if (last >= 0) emit progress(last, QStringLiteral("Transcribing with %1 · %2%").arg(m_modelName).arg(last));
     }
 }
 bool TranscriptionService::writeWhistleChunk(QString &path, QString &error) {
@@ -287,11 +326,11 @@ void TranscriptionService::runWhistleChunk() {
     QString path, error;
     if (!writeWhistleChunk(path, error)) { abortWithError(error); return; }
     QStringList args {QStringLiteral("--model"), modelPath(), QStringLiteral("--audio"), path,
-        QStringLiteral("--audio-depth"), QStringLiteral("8"), QStringLiteral("--audio-word-timestamps"),
+        QStringLiteral("--audio-word-timestamps"),
         QStringLiteral("--threads"), QString::number(m_threads)};
     if (m_language != "auto") args << QStringLiteral("--audio-language") << m_language;
     emit progress(int(100 * m_coreStart / m_info.durationMs),
-        QStringLiteral("Whistle · %1 / %2 · local CPU processing").arg(SubtitleDocument::formatTime(m_coreStart),SubtitleDocument::formatTime(m_info.durationMs)));
+        QStringLiteral("%1 · %2 / %3 · local CPU processing").arg(m_modelName, SubtitleDocument::formatTime(m_coreStart),SubtitleDocument::formatTime(m_info.durationMs)));
     startWorker(enginePath(QStringLiteral("needle")), args);
 }
 bool TranscriptionService::parseWhisper(const QByteArray &json, QString &error) {
@@ -381,10 +420,10 @@ void TranscriptionService::finishWorker(int code, QProcess::ExitStatus exit) {
     if (exit != QProcess::NormalExit || code != 0) {
         QString detail = QString::fromUtf8(m_stderr.right(1800)).trimmed();
         if (detail.isEmpty()) detail = QString::fromUtf8(m_stdout.right(1800)).trimmed();
-        abortWithError(QStringLiteral("%1 recognition failed (exit %2). %3").arg(displayModel(m_model)).arg(code).arg(detail)); return;
+        abortWithError(QStringLiteral("%1 recognition failed (exit %2). %3").arg(m_modelName).arg(code).arg(detail)); return;
     }
     QString error;
-    if (m_model == "whistle") {
+    if (m_engine == "whistle") {
         if (!parseWhistle(m_stdout,error)) { abortWithError(error); return; }
         m_coreStart = m_coreEnd;
         const quint64 generation = m_generation;
@@ -401,7 +440,7 @@ void TranscriptionService::finishWorker(int code, QProcess::ExitStatus exit) {
 void TranscriptionService::finishSuccess() {
     std::stable_sort(m_cues.begin(),m_cues.end(),[](const Cue &a,const Cue &b){ return a.startMs<b.startMs; });
     QVector<Cue> result = m_cues;
-    QString note = m_model == "whistle"
+    QString note = m_engine == "whistle"
         ? QStringLiteral("Whistle word timestamps grouped into subtitle lines. All recognition timings are estimates; review against the audio.")
         : QStringLiteral("Whisper segment timestamps. All recognition timings are estimates; review against the audio.");
     if (m_approximate) note += QStringLiteral(" Some segments use approximate section timing or repaired zero-length intervals; check those timings carefully.");
@@ -429,8 +468,11 @@ void TranscriptionService::reset() {
         p->disconnect(this); p->kill();
         // Keep the temporary directory alive until Windows releases its files.
         auto temp = std::shared_ptr<QTemporaryDir>(m_temp.release());
+        auto lease = std::move(m_modelLease);
         if (p->state()==QProcess::NotRunning) p->deleteLater();
-        else connect(p,qOverload<int,QProcess::ExitStatus>(&QProcess::finished),p,[p,temp](int,QProcess::ExitStatus){p->deleteLater();});
+        else connect(p,qOverload<int,QProcess::ExitStatus>(&QProcess::finished),p,[p,temp,lease](int,QProcess::ExitStatus){p->deleteLater();});
     }
+    m_modelLease.reset();
     m_temp.reset(); m_busy=false; m_cancelling=false; m_stdout.clear(); m_stderr.clear(); m_cues.clear();
+    m_engine.clear(); m_modelPath.clear(); m_modelName.clear(); m_workerRoot.clear();
 }

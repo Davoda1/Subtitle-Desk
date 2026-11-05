@@ -20,7 +20,12 @@ and LICENSE.txt in the runtime packages. This application notice is
 provided in NOTICE in the source distribution and NOTICE.txt in the
 runtime packages.
 
-Project and corresponding application source:
+Corresponding application source is supplied alongside this version in
+SubtitleDesk-1.1.0-Source.zip and SubtitleDesk-1.1.0-Source.tar.gz.
+The matching tagged source is available at:
+https://github.com/Davoda1/Subtitle-Desk/tree/v1.1.0
+
+Project home:
 https://github.com/Davoda1/Subtitle-Desk
 
 Third-party engines, models, libraries, and other components retain

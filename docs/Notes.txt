@@ -1,9 +1,28 @@
-SUBTITLE DESK 1.0.0 — RELEASE NOTES
+SUBTITLE DESK 1.1.0 — RELEASE NOTES
 
 Purpose
 -------
 An offline native desktop editor for turning audio/video files into timed
 subtitles and lyric lines, then reviewing and correcting the result by ear.
+
+New in 1.1.0
+------------
+* Use Models... beside the selector, or View > Models..., to install your
+  own compatible whisper.cpp GGML .bin or Whistle .cact audio models.
+* Import copies the source into application data, verifies its structure,
+  hashes its content, and checks it with the bundled recognizer. Progress
+  and cancellation remain available. Your original file is unchanged.
+* Maximum file size: 8 GiB. Engine load validation: up to five minutes.
+  Larger models need more memory and CPU time. No format conversion or
+  automatic download is provided. Archives, PyTorch, Safetensors, and
+  general-purpose GGUF/LLM files are not supported.
+* English-only Whisper models offer Auto/English. Whistle continues to
+  offer its seven languages. Existing bundled models remain available.
+* Duplicate content reuses the installed model. Remove imported copies
+  through the manager; bundled and actively used models are protected.
+* Projects refer to a model by content ID and do not embed weights. A
+  missing model must be installed or replaced before transcribing, while
+  existing subtitle text and timing stay editable.
 
 Included
 --------
@@ -40,19 +59,19 @@ Format and recognition details
 
 Storage
 -------
-Settings and recovery use %AppData%\SubtitleDesk on Windows and
+Settings, recovery, and imported models use %AppData%\SubtitleDesk on Windows and
 ~/.config/SubtitleDesk on Linux (respecting XDG_CONFIG_HOME). An empty
 portable.flag beside the executable switches them to its writable data
-subfolder. Temporary review audio is
-cleaned up when the session ends normally. Exporting subtitles does not
+subfolder. Imported weights are in models/ within that location.
+Temporary review audio is cleaned up when the session ends normally. Exporting subtitles does not
 replace saving an editable project.
 
 Verification
 ------------
 Automated checks cover document formats, editor behavior, native decoding,
-recognition with all four models, and package integrity. See Verification.md
-for their scope and BUILDING.md for reproduction commands. Per-commit
-results are available in the repository's Actions tab:
+recognition with all four bundled models, custom model import and use,
+and package integrity. See Verification.md for the actual scope and
+BUILDING.md for reproduction commands. Native Linux/Windows CI results:
 https://github.com/Davoda1/Subtitle-Desk/actions
 
 Licensing
@@ -64,4 +83,7 @@ and NOTICE; runtime packages include LICENSE.txt and NOTICE.txt.
 Third-party engines, models, Qt, and multimedia components keep their
 original copyright notices and licenses. Retain the licenses directory,
 application license, and application notice when redistributing binaries.
-Corresponding application source: https://github.com/Davoda1/Subtitle-Desk
+Corresponding source is supplied as SubtitleDesk-1.1.0-Source.zip and
+SubtitleDesk-1.1.0-Source.tar.gz alongside the binaries. Imported model
+weights retain their own licenses. Project home:
+https://github.com/Davoda1/Subtitle-Desk

@@ -38,7 +38,7 @@ with tempfile.TemporaryDirectory(prefix='subtitledesk-deb-') as td:
     control.mkdir()
     size = sum(f.stat().st_size for f in root.rglob('*') if f.is_file()) // 1024
     (control / 'control').write_text(f'''Package: subtitledesk
-Version: 1.0.0
+Version: 1.1.0
 Section: sound
 Priority: optional
 Architecture: amd64
@@ -47,8 +47,9 @@ Installed-Size: {size}
 Depends: libc6 (>= 2.34), libstdc++6 (>= 11), libgcc-s1, libgomp1, libasound2 | libasound2t64, libpulse0, libfontconfig1, libfreetype6, libglib2.0-0 | libglib2.0-0t64, libdbus-1-3, libgl1, libegl1, libopengl0, libx11-6, libx11-xcb1, libxext6, libxrender1, libxrandr2, libxcb1, libxcb-cursor0, libxcb-icccm4, libxcb-image0, libxcb-keysyms1, libxcb-randr0, libxcb-render-util0, libxcb-render0, libxcb-shape0, libxcb-shm0, libxcb-sync1, libxcb-util1, libxcb-xfixes0, libxcb-xkb1, libxkbcommon0, libxkbcommon-x11-0, libssl3 | libssl3t64, zlib1g
 Description: Offline subtitle and lyrics editor
  Native audio-only transcription and editing with four bundled CPU speech
- recognition models, synchronized cue highlighting, waveform navigation,
- review tools, and SRT, VTT, ASS, LRC, TXT, CSV and JSON exports.
+ recognition models and import of compatible local Whisper/Whistle models.
+ Includes synchronized cue highlighting, waveform navigation, review tools,
+ and SRT, VTT, ASS, LRC, TXT, CSV and JSON exports.
 ''', encoding='utf-8')
     a.output.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run(['dpkg-deb', '--root-owner-group', '-Zxz', '-z3', '--build', str(root), str(a.output.resolve())], check=True)

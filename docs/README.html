@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Subtitle Desk 1.0.0 — Manual</title><style>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Subtitle Desk 1.1.0 — Manual</title><style>
 :root{color-scheme:light dark;--bg:#f3f5f8;--paper:#fff;--ink:#253044;--muted:#68758a;--edge:#dce2eb;--accent:#34546f;--code:#eef2f6}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
 main{max-width:1020px;margin:36px auto;background:var(--paper);padding:44px 54px;border:1px solid var(--edge);border-radius:14px;box-shadow:0 8px 30px #14223308}
@@ -12,20 +12,78 @@ pre{overflow-x:auto;padding:16px;background:var(--code);border:1px solid var(--e
 @media(prefers-color-scheme:dark){:root{--bg:#15181e;--paper:#1e232c;--ink:#e0e7f1;--muted:#a5b0c0;--edge:#394352;--accent:#aecbe7;--code:#29313d}}
 @media(max-width:700px){main{margin:0;padding:24px 20px;border:0;border-radius:0}h1{font-size:29px}h2{font-size:21px}nav{display:block}nav a{display:block;margin:5px 0}th,td{padding:8px}}
 @media print{body,main{background:#fff;color:#111}main{margin:0;max-width:none;padding:0;border:0;box-shadow:none}nav{display:none}h2{break-after:avoid}table,pre{break-inside:avoid}a{color:#111}code,pre,th{background:#f2f2f2}footer{color:#555}}
-</style></head><body><main><p class="kicker">Offline subtitles &amp; lyrics · User manual</p><h1 id="subtitle-desk-1-0-0">Subtitle Desk 1.0.0</h1>
-<p>Subtitle Desk turns local audio and video into editable subtitles and synchronized lyric lines. Recognize speech, then listen while correcting words and timing. The Windows and Linux packages include four CPU models; after installation, the application needs no account, API key, network connection, or model download.</p><nav aria-label="Manual sections"><a href="#start-the-application">Start the application</a><a href="#1-open-audio-or-video">1. Open audio or video</a><a href="#2-choose-a-model-and-transcribe">2. Choose a model and transcribe</a><a href="#3-listen-and-review">3. Listen and review</a><a href="#4-correct-text-and-timing">4. Correct text and timing</a><a href="#5-save-a-project-and-export">5. Save a project and export</a><a href="#shortcuts">Shortcuts</a><a href="#settings-recovery-and-privacy">Settings, recovery, and privacy</a><a href="#building-and-licenses">Building and licenses</a></nav><h2 id="start-the-application">Start the application</h2>
+</style></head><body><main><p class="kicker">Offline subtitles &amp; lyrics · User manual</p><h1 id="subtitle-desk-1-1-0">Subtitle Desk 1.1.0</h1>
+<p>Subtitle Desk turns local audio and video into editable subtitles and synchronized lyric lines. Recognize speech, then listen while correcting words and timing. The Windows and Linux packages include four CPU models, and the Models manager can install additional compatible local files. After installation, the application needs no account, API key, network connection, or model download.</p>
+<nav aria-label="Manual sections"><a href="#start-the-application">Start the application</a><a href="#1-open-audio-or-video">1. Open audio or video</a><a href="#2-choose-a-model-and-transcribe">2. Choose a model and transcribe</a><a href="#install-and-manage-additional-models">Install and manage additional models</a><a href="#3-listen-and-review">3. Listen and review</a><a href="#4-correct-text-and-timing">4. Correct text and timing</a><a href="#5-save-a-project-and-export">5. Save a project and export</a><a href="#shortcuts">Shortcuts</a><a href="#settings-recovery-and-privacy">Settings, recovery, and privacy</a><a href="#building-and-licenses">Building and licenses</a></nav><h2 id="start-the-application">Start the application</h2>
 <p><strong>Windows 10/11 x64:</strong> extract the complete portable ZIP into a writable folder and open <code>SubtitleDesk.exe</code> at the archive root. Keep the adjacent runtime, plugin, model, and license files together.</p>
 <p><strong>GNU/Linux x86-64:</strong> extract the complete TAR.GZ and run the <code>subtitledesk</code> binary at its root. A graphical desktop and working system audio are required. The Debian package installs the actual executable at <code>/usr/bin/subtitledesk</code>; supporting files live under <code>/usr/lib/subtitledesk</code>. No launcher script is needed.</p>
 <p>The minimum window is 680 × 540. Compact layouts hide some secondary controls; menu commands and shortcuts remain available. Only individual editing panels scroll.</p>
 <h2 id="1-open-audio-or-video">1. Open audio or video</h2>
 <p>Click <strong>Open media…</strong>, use <strong>File → Open media</strong>, or drop one local file onto the window. Common inputs include MP4, MKV, WebM, MOV, AVI, MP3, WAV, FLAC, M4A, AAC, OGG, and Opus. Actual decoding depends on the codec inside the file; damaged, encrypted, or unsupported streams cannot be transcribed.</p>
 <p>Subtitle Desk reads the first audio stream. It does not display video or offer an audio-track selector. Review playback and recognition use the same temporary 16 kHz mono PCM track, giving them one shared timeline. Your original media file is never rewritten. Temporary audio requires about 115 MB of disk space per hour and is removed when its session ends normally.</p>
-<p>Audio start offsets relative to the container&#x27;s playback origin, and gaps, are retained as silence so exported subtitles stay aligned with the original video. If a source has no timestamps, continuous sample timing is used.</p>
+<p>Audio start offsets relative to the container&#39;s playback origin, and gaps, are retained as silence so exported subtitles stay aligned with the original video. If a source has no timestamps, continuous sample timing is used.</p>
 <p>If you already have subtitles, open the media and choose <strong>File → Import subtitles / lyrics…</strong>. SRT, WebVTT, ASS/SSA, and LRC imports are supported. Import replaces the cue list after confirmation and can be undone. You can also open timed text first and use <strong>File → Link / replace audio…</strong> afterward.</p>
 <h2 id="2-choose-a-model-and-transcribe">2. Choose a model and transcribe</h2>
-<div class="table-wrap"><table><thead><tr><th scope="col">Model</th><th scope="col">Practical starting point</th><th scope="col">Language support</th></tr></thead><tbody><tr><td>Cactus Whistle</td><td>Compact recognizer; recognized word times are grouped into subtitle cues</td><td>English, German, French, Spanish, Italian, Dutch, Polish</td></tr><tr><td>Whisper Tiny multilingual Q5_1</td><td>Fast initial draft</td><td>Multilingual</td></tr><tr><td>Whisper Base multilingual Q5_1</td><td>Balanced default</td><td>Multilingual</td></tr><tr><td>Whisper Small multilingual Q5_1</td><td>Larger, generally slower alternative to compare on difficult material</td><td>Multilingual</td></tr></tbody></table></div>
-<p>Choose the language or leave <strong>Auto language</strong> selected. Use Whisper for languages outside Whistle's supported set. Click <strong>Transcribe</strong>; the status area shows progress and <strong>Cancel</strong> stops the job. Existing cues remain intact if recognition fails, is cancelled, or returns no speech. A successful replacement can be undone.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th scope="col">Model</th>
+<th scope="col">Practical starting point</th>
+<th scope="col">Language support</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Cactus Whistle</td>
+<td>Compact recognizer; recognized word times are grouped into subtitle cues</td>
+<td>English, German, French, Spanish, Italian, Dutch, Polish</td>
+</tr>
+<tr>
+<td>Whisper Tiny multilingual Q5_1</td>
+<td>Fast initial draft</td>
+<td>Multilingual</td>
+</tr>
+<tr>
+<td>Whisper Base multilingual Q5_1</td>
+<td>Balanced default</td>
+<td>Multilingual</td>
+</tr>
+<tr>
+<td>Whisper Small multilingual Q5_1</td>
+<td>Larger, generally slower alternative to compare on difficult material</td>
+<td>Multilingual</td>
+</tr>
+</tbody></table></div>
+<p>Choose the language or leave <strong>Auto language</strong> selected. Use Whisper for languages outside Whistle&#39;s supported set. Click <strong>Transcribe</strong>; the status area shows progress and <strong>Cancel</strong> stops the job. Existing cues remain intact if recognition fails, is cancelled, or returns no speech. A successful replacement can be undone.</p>
 <p>Singing, music, reverberation, overlapping voices, and unfamiliar names can produce incorrect words. Review the result before sharing it. Whistle supplies recognized word timing; Whisper supplies segment timing. All recognition timings are estimates. Editing and exports use complete cues; automatic word-by-word karaoke alignment and speaker diarization are not provided.</p>
+<h2 id="install-and-manage-additional-models">Install and manage additional models</h2>
+<p>Click <strong>Models…</strong> next to the main model selector, or choose <strong>View → Models…</strong>. The manager lists bundled and imported models with their recognizer family and file size. Choose <strong>Import model…</strong>, select a file, and optionally set its display name.</p>
+<p>The supported inputs are raw <strong>whisper.cpp GGML <code>.bin</code> speech models</strong> and compatible <strong>Whistle <code>.cact</code> audio models</strong>. A compatible Whisper model can be quantized, multilingual, or English-only. A <code>.cact</code> file must contain the Whistle audio manifest; a general Needle text model is not compatible. Files must work with the bundled engine versions. Renaming a PyTorch <code>.pt</code>, Safetensors, general-purpose GGUF/LLM, ZIP, or executable file does not make it a supported model.</p>
+<p>The app copies the file into its own model storage, validates the structure, calculates a SHA-256 content identifier, and runs the bundled recognizer against short silence to check that it loads. Validation does not assess recognition accuracy. <strong>Files must be between 1 MB and 8 GiB</strong>, and engine validation stops after <strong>five minutes</strong>. Keep enough free disk space for a complete copy and enough memory for the model. Larger models can be much slower on a CPU.</p>
+<p>Progress appears in the manager. <strong>Cancel</strong> stops an in-progress import and removes its unfinished copy. An error leaves the existing catalog intact. Your original file is never modified or deleted. A model becomes selectable only after installation succeeds; importing the same content again selects the existing installation. The application does not download models or convert other model formats.</p>
+<p>Select an imported model in the main model selector to use it for transcription. English-only Whisper files are identified from their headers and offer only Auto/English; multilingual Whisper uses the normal language list, and Whistle offers its seven supported languages. Any recognition result should still be checked against the audio.</p>
+<p>To uninstall an imported model, select it in the manager and choose <strong>Remove…</strong>, then confirm. This removes the installed copy and its metadata, not the original file. Bundled models cannot be removed here. A model used by an active transcription job cannot be removed until that job ends or is cancelled. This protection also applies when another copy of Subtitle Desk is open. An imported model can be used for recognition by one application instance at a time; if another instance is using it, wait for that job to finish.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th scope="col">Storage mode</th>
+<th scope="col">Installed models</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Windows</td>
+<td><code>%AppData%\SubtitleDesk\models</code></td>
+</tr>
+<tr>
+<td>Linux</td>
+<td><code>~/.config/SubtitleDesk/models</code>, respecting <code>XDG_CONFIG_HOME</code></td>
+</tr>
+<tr>
+<td>Portable, with <code>portable.flag</code></td>
+<td><code>data/models</code> beside the executable</td>
+</tr>
+</tbody></table></div>
+<p>Projects store the selected model&#39;s content-based identifier, not its weights or an absolute installation path. When moving a project to another computer, install the same model there or choose a different available model. If the saved model is unavailable, the app shows that state and disables transcription until a model is available; existing subtitle text and timing remain editable. Reinstalling identical content restores the same identifier.</p>
+<p>Only install models from sources you trust. Imported model weights retain their own licenses; the application&#39;s AGPL license does not replace them. They are not embedded in projects, subtitle exports, or the application&#39;s distributed packages.</p>
 <h2 id="3-listen-and-review">3. Listen and review</h2>
 <p>Click the waveform to seek. The <strong>Full track</strong>, <strong>30 seconds</strong>, and <strong>10 seconds</strong> views help with navigation. Playback speed ranges from 0.5× to 2×; the adjacent buttons move three seconds backward or forward.</p>
 <p>Blue rows show cues active at the playhead. Highlighting is independent of editing selection, so listening does not move your text cursor or replace your editing text. <strong>Follow audio</strong> scrolls the active cue into view when you are not typing.</p>
@@ -38,19 +96,103 @@ pre{overflow-x:auto;padding:16px;background:var(--code);border:1px solid var(--e
 <p><strong>Edit → Check timing and readability…</strong> reports overlaps, empty text, cues past the audio end, lines longer than 42 characters, more than two lines, and reading speeds above 20 characters per second. These are review hints, not rigid subtitle standards. Invalid intervals block export; overlaps and readability warnings do not. Undo and redo cover text edits, timing changes, splits, merges, deletions, and transcription replacement.</p>
 <h2 id="5-save-a-project-and-export">5. Save a project and export</h2>
 <p>Save a <code>.sdesk</code> project before ending a review session. It preserves cue text, exact millisecond boundaries, stable IDs, review marks, the selected recognition model and language, and the media link. Audio is not embedded. Keep the original media available; use <strong>Link / replace audio…</strong> if you move or rename it. Relative links let a project and its media move together.</p>
-<div class="table-wrap"><table><thead><tr><th scope="col">Export</th><th scope="col">What it preserves and where to use it</th></tr></thead><tbody><tr><td>SRT</td><td>Start/end times to milliseconds; common video-player subtitles</td></tr><tr><td>WebVTT</td><td>Start/end times to milliseconds; web video and compatible players</td></tr><tr><td>ASS</td><td>Start/end times to centiseconds and a neutral default subtitle style</td></tr><tr><td>LRC</td><td>Line start times to centiseconds; music players supporting synchronized lyrics</td></tr><tr><td>TXT</td><td>Transcript words and line breaks, without timing</td></tr><tr><td>CSV</td><td>Millisecond timing columns, text, IDs, and review marks for spreadsheets</td></tr><tr><td>JSON</td><td>The full editable project data, equivalent to <code>.sdesk</code></td></tr></tbody></table></div>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th scope="col">Export</th>
+<th scope="col">What it preserves and where to use it</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SRT</td>
+<td>Start/end times to milliseconds; common video-player subtitles</td>
+</tr>
+<tr>
+<td>WebVTT</td>
+<td>Start/end times to milliseconds; web video and compatible players</td>
+</tr>
+<tr>
+<td>ASS</td>
+<td>Start/end times to centiseconds and a neutral default subtitle style</td>
+</tr>
+<tr>
+<td>LRC</td>
+<td>Line start times to centiseconds; music players supporting synchronized lyrics</td>
+</tr>
+<tr>
+<td>TXT</td>
+<td>Transcript words and line breaks, without timing</td>
+</tr>
+<tr>
+<td>CSV</td>
+<td>Millisecond timing columns, text, IDs, and review marks for spreadsheets</td>
+</tr>
+<tr>
+<td>JSON</td>
+<td>The full editable project data, equivalent to <code>.sdesk</code></td>
+</tr>
+</tbody></table></div>
 <p>Exports use UTF-8 and chronological cue order. ASS rounds starts down and ends up to its 10 ms precision. LRC has no explicit end times: importing it infers each end from the next distinct start, with a three-second final cue unless a length tag supplies an end. Duplicate LRC timestamps retain all lyric lines. Use SRT, VTT, or a project when both exact boundaries matter.</p>
 <p>CSV prefixes formula-like cell values with an apostrophe so spreadsheet software treats them as text. This does not change the text in your project or other exports. Imported subtitle styling is converted to plain editable text; this is not an ASS effects or typesetting editor. UTF-8 and BOM-marked UTF-16 subtitle imports are supported.</p>
 <h2 id="shortcuts">Shortcuts</h2>
-<div class="table-wrap"><table><thead><tr><th scope="col">Action</th><th scope="col">Shortcut</th></tr></thead><tbody><tr><td>Open media / open project</td><td>Ctrl+O / Ctrl+Shift+O</td></tr><tr><td>Import timed text / save project / export</td><td>Ctrl+I / Ctrl+S / Ctrl+E</td></tr><tr><td>Play or pause / replay cue</td><td>Ctrl+Space / Ctrl+P</td></tr><tr><td>Previous or next cue</td><td>Alt+Up / Alt+Down</td></tr><tr><td>Set start or end at playhead</td><td>Ctrl+[ / Ctrl+]</td></tr><tr><td>Add / split / merge cue</td><td>Ctrl+Enter / Ctrl+K / Ctrl+M</td></tr><tr><td>Delete selected cues / toggle reviewed</td><td>Ctrl+Delete / Ctrl+R</td></tr><tr><td>Undo / redo</td><td>Ctrl+Z / Ctrl+Y or Ctrl+Shift+Z</td></tr><tr><td>Shift timing / check timing</td><td>Ctrl+Shift+T / Ctrl+Shift+C</td></tr><tr><td>Settings / quick guide</td><td>Ctrl+, / F1</td></tr></tbody></table></div>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th scope="col">Action</th>
+<th scope="col">Shortcut</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Open media / open project</td>
+<td>Ctrl+O / Ctrl+Shift+O</td>
+</tr>
+<tr>
+<td>Import timed text / save project / export</td>
+<td>Ctrl+I / Ctrl+S / Ctrl+E</td>
+</tr>
+<tr>
+<td>Play or pause / replay cue</td>
+<td>Ctrl+Space / Ctrl+P</td>
+</tr>
+<tr>
+<td>Previous or next cue</td>
+<td>Alt+Up / Alt+Down</td>
+</tr>
+<tr>
+<td>Set start or end at playhead</td>
+<td>Ctrl+[ / Ctrl+]</td>
+</tr>
+<tr>
+<td>Add / split / merge cue</td>
+<td>Ctrl+Enter / Ctrl+K / Ctrl+M</td>
+</tr>
+<tr>
+<td>Delete selected cues / toggle reviewed</td>
+<td>Ctrl+Delete / Ctrl+R</td>
+</tr>
+<tr>
+<td>Undo / redo</td>
+<td>Ctrl+Z / Ctrl+Y or Ctrl+Shift+Z</td>
+</tr>
+<tr>
+<td>Shift timing / check timing</td>
+<td>Ctrl+Shift+T / Ctrl+Shift+C</td>
+</tr>
+<tr>
+<td>Settings / quick guide</td>
+<td>Ctrl+, / F1</td>
+</tr>
+</tbody></table></div>
 <h2 id="settings-recovery-and-privacy">Settings, recovery, and privacy</h2>
-<p><strong>View → Settings…</strong> controls System, Light, or Dark appearance and recognition CPU threads. Window geometry, panel sizes, model, language, and volume are remembered under <code>%AppData%\SubtitleDesk</code> on Windows or <code>~/.config/SubtitleDesk</code> on Linux (respecting <code>XDG_CONFIG_HOME</code>). To keep these files beside a portable application, create an empty <code>portable.flag</code> beside the executable before launch; settings and recovery then use its writable <code>data</code> subfolder.</p>
+<p><strong>View → Settings…</strong> controls System, Light, or Dark appearance and recognition CPU threads. Window geometry, panel sizes, model, language, and volume are remembered under <code>%AppData%\SubtitleDesk</code> on Windows or <code>~/.config/SubtitleDesk</code> on Linux (respecting <code>XDG_CONFIG_HOME</code>). To keep these files beside a portable application, create an empty <code>portable.flag</code> beside the executable before launch; settings, recovery, and imported models then use its writable <code>data</code> subfolder.</p>
 <p>Unsaved edits are written to a recovery project approximately every 20 seconds. After an interrupted session, the next launch offers to restore it. Save a project explicitly before moving between computers; recovery does not copy your original audio. The application has no telemetry, cloud transcription, or credential storage. Projects and exports contain your text and can contain media paths; review those files before sharing them.</p>
 <h2 id="building-and-licenses">Building and licenses</h2>
 <p>The source uses C++17, CMake 3.22 or later, and Qt 6.8 or later with Core, Gui, Widgets, Multimedia, and Test for GUI tests. Use Qt 6.8.3 when packaging with the pinned runtime. Configure with your Qt kit, build, and run the registered tests:</p>
-<pre><code>cmake -S . -B build -DCMAKE_PREFIX_PATH=/path/to/your/Qt/kit
+<pre><code class="language-sh">cmake -S . -B build -DCMAKE_PREFIX_PATH=/path/to/your/Qt/kit
 cmake --build build --parallel
-ctest --test-dir build --output-on-failure</code></pre>
+ctest --test-dir build --output-on-failure
+</code></pre>
 <p>Source builds also need the native engines, models, and multimedia components. See <a href="BUILDING.md">BUILDING.md</a> for the pinned runtime fetch, native Linux/Windows commands, and real-engine checks. Configuring with <code>SUBTITLEDESK_RUNTIME_ROOT</code> enables runtime-dependent tests; the basic commands above do not exercise the speech engines by themselves. The source archive omits model weights and the Qt SDK.</p>
 <p>Subtitle Desk is licensed under the GNU Affero General Public License, version 3 only (<code>AGPL-3.0-only</code>). Copyright (c) 2026 davoda1. The source includes <code>LICENSE</code> and <code>NOTICE</code>; runtime packages include <code>LICENSE.txt</code> and <code>NOTICE.txt</code>.</p>
-<p>Qt, recognition engines, models, and multimedia libraries retain their respective copyright notices and licenses. Keep the included <code>licenses</code> directory, application license, and copyright notices with redistributed binaries. Application source is available from the <a href="https://github.com/Davoda1/Subtitle-Desk">Subtitle Desk repository</a>.</p><footer>Subtitle Desk 1.0.0 · Local audio, editable timing, and portable project files.</footer></main></body></html>
+<p>Qt, recognition engines, models, and multimedia libraries retain their respective copyright notices and licenses. Keep the included <code>licenses</code> directory, application license, and copyright notices with redistributed binaries. The corresponding 1.1.0 application source is supplied in <code>SubtitleDesk-1.1.0-Source.zip</code> and <code>SubtitleDesk-1.1.0-Source.tar.gz</code> alongside the binary packages. The <a href="https://github.com/Davoda1/Subtitle-Desk">Subtitle Desk repository</a> is the project home.</p>
+<footer>Subtitle Desk 1.1.0 · Local audio, your choice of models, and editable timing.</footer></main></body></html>

@@ -1,25 +1,32 @@
 #include "mainwindow.h"
 #include "audio_session.h"
 #include "transcription_service.h"
+#include "model_catalog.h"
+#include "model_manager_dialog.h"
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDir>
 #include <QFile>
+#include <QFileDialog>
 #include <QFileInfo>
+#include <QInputDialog>
 #include <QItemSelectionModel>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMediaPlayer>
+#include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QStyle>
 #include <QStyleOptionButton>
+#include <QSignalSpy>
 #include <QTableWidget>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QTextCursor>
+#include <QTimer>
 
 namespace {
 SubtitleDocument twoCues() {
@@ -29,7 +36,7 @@ SubtitleDocument twoCues() {
               Cue{QStringLiteral("second"),6000,9000,QStringLiteral("Second phrase for review."),false}};
     return doc;
 }
-template<typename T> T *child(MainWindow &window,const char *name) {
+template<typename T> T *child(QObject &window,const char *name) {
     T *result=window.findChild<T *>(QString::fromLatin1(name));
     if(!result)qFatal("Required UI control not found: %s",name);
     return result;
@@ -55,6 +62,16 @@ void replaceEditorText(MainWindow &window,const QString &text) {
 void commitTime(QLineEdit *edit,const QString &text) {
     edit->setFocus();edit->setText(text);QTest::keyClick(edit,Qt::Key_Return);QCoreApplication::processEvents();
 }
+void selectModelRow(ModelManagerDialog &dialog,const QString &id) {
+    auto *table=child<QTableWidget>(dialog,"modelManagerTable");
+    for(int row=0;row<table->rowCount();++row) {
+        if(table->item(row,0)->data(Qt::UserRole).toString()==id) {
+            table->setCurrentCell(row,0,QItemSelectionModel::ClearAndSelect|QItemSelectionModel::Rows);
+            QCoreApplication::processEvents();return;
+        }
+    }
+    qFatal("Required model row not found: %s",qPrintable(id));
+}
 }
 
 class UiTest final:public QObject {
@@ -63,6 +80,7 @@ private slots:
     void initTestCase() {
         QCoreApplication::setApplicationName(QStringLiteral("SubtitleDeskUiTests"));
         QCoreApplication::setOrganizationName(QStringLiteral("SubtitleDeskTests"));
+        QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
     }
     void modelAndLanguageChoices() {
         MainWindow window(true);show(window);
@@ -80,6 +98,152 @@ private slots:
         QCOMPARE(languages->findData(QStringLiteral("hu")),-1);
         QVERIFY(languages->findData(QStringLiteral("pl"))>=0);
         QVERIFY(!child<QPushButton>(window,"transcribeButton")->isEnabled());
+    }
+    void modelManagerKeepsControlsVisibleAndProtectsBundledModels() {
+        QTemporaryDir temp;QVERIFY(temp.isValid());
+        ModelCatalog catalog(qEnvironmentVariable("SUBTITLEDESK_RESOURCES"),temp.path());
+        ModelManagerDialog dialog(&catalog,temp.path(),QStringLiteral("base"));
+        dialog.resize(560,440);dialog.show();QCoreApplication::processEvents();
+        QCOMPARE(dialog.size(),QSize(560,440));
+        auto *table=child<QTableWidget>(dialog,"modelManagerTable");QCOMPARE(table->rowCount(),4);
+        auto *remove=child<QPushButton>(dialog,"removeModelButton");
+        for(const QString &id:QStringList{"whistle","tiny","base","small"}) {
+            selectModelRow(dialog,id);QCOMPARE(dialog.selectedModelId(),id);QVERIFY(!remove->isEnabled());
+        }
+        for(const QString &name:QStringList{"modelManagerTable","modelManagerStatus","modelStoragePath","importModelButton","removeModelButton","useModelButton","closeModelManagerButton","modelFormatHelpButton","openModelFolderButton"}) {
+            auto *control=dialog.findChild<QWidget *>(name);QVERIFY2(control,qPrintable(name));
+            QVERIFY2(control->isVisibleTo(&dialog),qPrintable(name+" is hidden at minimum size"));
+            const QRect bounds(control->mapTo(&dialog,QPoint(0,0)),control->size());
+            QVERIFY2(dialog.rect().contains(bounds),qPrintable(name+" is outside the model manager"));
+            QVERIFY2(bounds.width()>12&&bounds.height()>10,qPrintable(name+" has collapsed"));
+        }
+        QVERIFY(table->viewport()->height()>=70);
+        dialog.setRecognitionActive(true);
+        QVERIFY(!child<QPushButton>(dialog,"useModelButton")->isEnabled());QVERIFY(!remove->isEnabled());
+        QVERIFY(child<QPushButton>(dialog,"closeModelManagerButton")->isEnabled());
+        dialog.setRecognitionActive(false);
+        QTest::mouseClick(child<QPushButton>(dialog,"closeModelManagerButton"),Qt::LeftButton);
+        QVERIFY(!dialog.isVisible());
+    }
+    void missingSavedModelIsPreservedUntilUserChoosesAnother() {
+        QTemporaryDir temp;QVERIFY(temp.isValid());
+        auto doc=twoCues();doc.model=QStringLiteral("custom-")+QString(64,QLatin1Char('a'));doc.language=QStringLiteral("hu");
+        const QString path=temp.filePath(QStringLiteral("missing-model.sdesk"));QString error;
+        QVERIFY2(doc.saveProject(path,&error),qPrintable(error));
+        MainWindow window(true);show(window);window.openPath(path);
+        auto *models=child<QComboBox>(window,"modelCombo");auto *languages=child<QComboBox>(window,"languageCombo");
+        QCOMPARE(models->currentData().toString(),doc.model);
+        QVERIFY(models->currentText().contains(QStringLiteral("Missing")));
+        QCOMPARE(languages->currentData().toString(),doc.language);QVERIFY(!languages->isEnabled());
+        QVERIFY(!child<QPushButton>(window,"transcribeButton")->isEnabled());
+        menuAction(window,QStringLiteral("Save project"))->trigger();
+        SubtitleDocument saved;QVERIFY2(saved.load(path,&error),qPrintable(error));
+        QCOMPARE(saved.model,doc.model);QCOMPARE(saved.language,doc.language);
+        models->setCurrentIndex(models->findData(QStringLiteral("base")));QVERIFY(languages->isEnabled());
+        menuAction(window,QStringLiteral("Save project"))->trigger();
+        QVERIFY2(saved.load(path,&error),qPrintable(error));QCOMPARE(saved.model,QStringLiteral("base"));
+    }
+    void importedModelCanBeChosenSavedAndRemovedThroughManager() {
+        const QString importFile=qEnvironmentVariable("SUBTITLEDESK_TEST_IMPORT_MODEL");
+        if(importFile.isEmpty()||qEnvironmentVariableIsEmpty("SUBTITLEDESK_RESOURCES"))
+            QSKIP("Set SUBTITLEDESK_RESOURCES and SUBTITLEDESK_TEST_IMPORT_MODEL for imported-model UI integration.");
+        QTemporaryDir temp;QVERIFY(temp.isValid());
+        const QString project=temp.filePath(QStringLiteral("imported-model.sdesk"));QString error;
+        QVERIFY2(twoCues().saveProject(project,&error),qPrintable(error));
+        MainWindow window(true);show(window);window.openPath(project);
+        auto *catalog=window.modelCatalog();QVERIFY(catalog);
+        QSignalSpy imported(catalog,&ModelCatalog::modelImported),failed(catalog,&ModelCatalog::importFailed);
+        const QString storage=window.settingsDirectory()+QStringLiteral("/models");
+        {
+            ModelManagerDialog dialog(catalog,storage,QStringLiteral("base"),&window);
+            dialog.show();QCoreApplication::processEvents();
+            const auto importThroughDialogs=[&](bool acceptName) {
+                QTimer::singleShot(0,&dialog,[&,acceptName] {
+                    auto *picker=qobject_cast<QFileDialog *>(QApplication::activeModalWidget());
+                    if(!picker)qFatal("Import model did not open a file picker");
+                    QTimer::singleShot(0,&dialog,[&,acceptName] {
+                        auto *name=child<QInputDialog>(dialog,"importModelNameDialog");
+                        name->setTextValue(QStringLiteral("English speech model"));
+                        if(acceptName)name->accept();else name->reject();
+                    });
+                    picker->selectFile(importFile);
+                    QMetaObject::invokeMethod(picker,"accept",Qt::DirectConnection);
+                });
+                QTest::mouseClick(child<QPushButton>(dialog,"importModelButton"),Qt::LeftButton);
+            };
+            importThroughDialogs(false);
+            QVERIFY(!catalog->busy());QVERIFY(imported.isEmpty());QCOMPARE(catalog->models().size(),4);
+            importThroughDialogs(true);QVERIFY(catalog->busy());
+            QVERIFY(!child<QPushButton>(dialog,"importModelButton")->isEnabled());
+            QVERIFY(!child<QPushButton>(dialog,"useModelButton")->isEnabled());
+            QVERIFY(!child<QPushButton>(dialog,"removeModelButton")->isEnabled());
+            QVERIFY(child<QPushButton>(dialog,"cancelImportButton")->isVisibleTo(&dialog));
+            QTRY_VERIFY_WITH_TIMEOUT(!imported.isEmpty()||!failed.isEmpty(),120000);
+            QVERIFY2(failed.isEmpty(),qPrintable(failed.isEmpty()?QString():failed.first().first().toString()));
+            QCOMPARE(imported.count(),1);QVERIFY(!catalog->busy());
+            QCOMPARE(child<QTableWidget>(dialog,"modelManagerTable")->rowCount(),5);
+            QVERIFY(!child<QPushButton>(dialog,"cancelImportButton")->isVisibleTo(&dialog));
+        }
+        const QString id=imported.first().first().toString();QVERIFY(catalog->model(id).englishOnly);
+        QCOMPARE(catalog->model(id).name,QStringLiteral("English speech model"));
+        const QString installedPath=catalog->model(id).path;
+        auto *models=child<QComboBox>(window,"modelCombo");auto *languages=child<QComboBox>(window,"languageCombo");
+        QVERIFY(models->findData(id)>=0);
+        // Exercise the real MainWindow -> modal manager -> Use model signal.
+        QString chosen;
+        QTimer::singleShot(0,&window,[&] {
+            auto *dialog=child<ModelManagerDialog>(window,"modelManagerDialog");
+            QObject::connect(dialog,&ModelManagerDialog::modelChosen,&window,[&](QString value){chosen=value;});
+            selectModelRow(*dialog,id);
+            QTest::mouseClick(child<QPushButton>(*dialog,"useModelButton"),Qt::LeftButton);
+        });
+        QTest::mouseClick(child<QPushButton>(window,"manageModelsButton"),Qt::LeftButton);
+        QCOMPARE(chosen,id);QCOMPARE(models->currentData().toString(),id);
+        QVERIFY(languages->findData(QStringLiteral("en"))>=0);
+        for(int index=0;index<languages->count();++index) {
+            const QString language=languages->itemData(index).toString();
+            QVERIFY(language==QStringLiteral("en")||language==QStringLiteral("auto"));
+        }
+        languages->setCurrentIndex(languages->findData(QStringLiteral("en")));
+        menuAction(window,QStringLiteral("Save project"))->trigger();
+        SubtitleDocument saved;QVERIFY2(saved.load(project,&error),qPrintable(error));
+        QCOMPARE(saved.model,id);QCOMPARE(saved.language,QStringLiteral("en"));
+        QFile json(project);QVERIFY(json.open(QIODevice::ReadOnly));const QByteArray bytes=json.readAll();json.close();
+        QVERIFY(!bytes.contains(installedPath.toUtf8()));QVERIFY(!bytes.contains(importFile.toUtf8()));
+        models->setCurrentIndex(models->findData(QStringLiteral("base")));
+        window.openPath(project);QCOMPARE(models->currentData().toString(),id);
+        // Remove the installed copy with the actual confirmation dialog.
+        bool confirmationShown=false;
+        QTimer::singleShot(0,&window,[&] {
+            auto *dialog=child<ModelManagerDialog>(window,"modelManagerDialog");selectModelRow(*dialog,id);
+            QTimer::singleShot(0,dialog,[&] {
+                auto *confirmation=child<QMessageBox>(window,"removeModelConfirmation");confirmationShown=true;
+                QTest::mouseClick(confirmation->button(QMessageBox::Yes),Qt::LeftButton);
+            });
+            QTest::mouseClick(child<QPushButton>(*dialog,"removeModelButton"),Qt::LeftButton);
+            QTest::mouseClick(child<QPushButton>(*dialog,"closeModelManagerButton"),Qt::LeftButton);
+        });
+        QTest::mouseClick(child<QPushButton>(window,"manageModelsButton"),Qt::LeftButton);
+        QVERIFY(confirmationShown);QVERIFY(catalog->model(id).id.isEmpty());QVERIFY(!QFileInfo::exists(installedPath));
+        QVERIFY(QFileInfo(importFile).isFile());QCOMPARE(models->currentData().toString(),id);
+        QVERIFY(models->currentText().contains(QStringLiteral("Missing")));QVERIFY(!languages->isEnabled());
+        QVERIFY(!child<QPushButton>(window,"transcribeButton")->isEnabled());
+        QVERIFY2(saved.load(project,&error),qPrintable(error));QCOMPARE(saved.model,id);
+    }
+    void closingModelManagerCancelsPendingImportBeforeClosing() {
+        const QString resources=qEnvironmentVariable("SUBTITLEDESK_RESOURCES");
+        if(resources.isEmpty())QSKIP("Set SUBTITLEDESK_RESOURCES for asynchronous import cancellation.");
+        QTemporaryDir temp;QVERIFY(temp.isValid());
+        ModelCatalog catalog(resources,temp.path());
+        ModelManagerDialog dialog(&catalog,temp.path(),QStringLiteral("base"));
+        dialog.show();QCoreApplication::processEvents();
+        QSignalSpy cancelled(&catalog,&ModelCatalog::importCancelled),imported(&catalog,&ModelCatalog::modelImported);
+        catalog.importModel(QDir(resources).filePath(QStringLiteral("models/ggml-tiny-q5_1.bin")));
+        QVERIFY(catalog.busy());
+        QTest::mouseClick(child<QPushButton>(dialog,"closeModelManagerButton"),Qt::LeftButton);
+        QVERIFY(dialog.isVisible()); // Closing waits for the worker to stop.
+        QTRY_VERIFY_WITH_TIMEOUT(!catalog.busy()&&!dialog.isVisible(),10000);
+        QCOMPARE(cancelled.count(),1);QVERIFY(imported.isEmpty());QCOMPARE(catalog.models().size(),4);
     }
     void typingCoalescesAndUndoRestoresReviewFlag() {
         MainWindow window(true);window.setDocument(twoCues(),false);show(window);
@@ -233,7 +397,7 @@ private slots:
     void compactLayoutKeepsEditingControlsReachable() {
         MainWindow window(true);window.loadDemo();show(window);window.resize(680,540);QCoreApplication::processEvents();
         QCOMPARE(window.size(),QSize(680,540));
-        const QStringList essential={"modelCombo","languageCombo","transcribeButton","waveform","playButton","backButton","forwardButton","clock","loopCheck","speedCombo","cueTable","searchEdit","unreviewedCheck","followCheck","addButton","splitButton","mergeButton","deleteButton","startEdit","endEdit","cueTextEdit","replayButton","reviewButton","previousButton","nextButton","statusText"};
+        const QStringList essential={"modelCombo","languageCombo","manageModelsButton","transcribeButton","waveform","playButton","backButton","forwardButton","clock","loopCheck","speedCombo","cueTable","searchEdit","unreviewedCheck","followCheck","addButton","splitButton","mergeButton","deleteButton","startEdit","endEdit","cueTextEdit","replayButton","reviewButton","previousButton","nextButton","statusText"};
         for(const QString &name:essential) {
             auto *control=window.findChild<QWidget *>(name);QVERIFY2(control,qPrintable(name));
             QVERIFY2(control->isVisibleTo(&window),qPrintable(name+" is hidden at minimum size"));
@@ -253,8 +417,8 @@ private slots:
         QVERIFY(child<QPushButton>(window,"openMediaButton")->isVisibleTo(&window));
     }
     void realMediaTranscriptionReviewSaveAndExport() {
-        // Optional integration uses a caller-supplied speech recording and the
-        // real bundled models. No external test recording ships in source.
+        // Optional integration uses the short synthetic fixture (or another
+        // caller-supplied recording) and the real bundled models.
         const QString media=qEnvironmentVariable("SUBTITLEDESK_TEST_MEDIA");
         if(media.isEmpty())QSKIP("Set SUBTITLEDESK_TEST_MEDIA and SUBTITLEDESK_RESOURCES to run real audio transcription.");
         QVERIFY2(QFileInfo(media).isFile(),"The supplied integration media must exist.");
@@ -274,6 +438,16 @@ private slots:
         auto *recognizer=window.findChild<TranscriptionService *>();QVERIFY(recognizer);
         QVERIFY2(recognizer->availability(QStringLiteral("tiny")).isEmpty(),qPrintable(recognizer->availability(QStringLiteral("tiny"))));
         QTest::mouseClick(transcribe,Qt::LeftButton);QVERIFY(recognizer->busy());
+        QVERIFY(!models->isEnabled());QVERIFY(!languages->isEnabled());
+        bool modelChangesProtected=false;
+        QTimer::singleShot(0,&window,[&] {
+            auto *dialog=child<ModelManagerDialog>(window,"modelManagerDialog");
+            modelChangesProtected=!child<QPushButton>(*dialog,"useModelButton")->isEnabled()
+                &&!child<QPushButton>(*dialog,"removeModelButton")->isEnabled();
+            QTest::mouseClick(child<QPushButton>(*dialog,"closeModelManagerButton"),Qt::LeftButton);
+        });
+        QTest::mouseClick(child<QPushButton>(window,"manageModelsButton"),Qt::LeftButton);
+        QVERIFY(modelChangesProtected);
         // The demonstration must not replace state owned by a real worker.
         window.loadDemo();QCOMPARE(window.document().title,seed.title);
         QTRY_VERIFY_WITH_TIMEOUT(!recognizer->busy(),120000);
@@ -339,6 +513,12 @@ private slots:
         QFile::remove(recovery);
         replaceEditorText(window,QStringLiteral("Unsaved test edit."));
         window.close();QCoreApplication::processEvents();QVERIFY(!QFile::exists(recovery));
+    }
+    void cleanup() {
+        // Every window has been destroyed when this slot runs. Only this
+        // process's explicit test-mode model copies are removed here.
+        const QString models=QDir::tempPath()+QStringLiteral("/subtitledesk-test-")+QString::number(QCoreApplication::applicationPid())+QStringLiteral("/models");
+        QDir(models).removeRecursively();
     }
     void cleanupTestCase() {
         const QString ownPath=QDir::tempPath()+QStringLiteral("/subtitledesk-test-")+QString::number(QCoreApplication::applicationPid());

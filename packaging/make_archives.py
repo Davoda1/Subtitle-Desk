@@ -95,10 +95,10 @@ def main():
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     jobs = [
-        (args.windows, args.output / 'SubtitleDesk-1.0.0-Windows-x64.zip', 'zip', '', False),
-        (args.linux, args.output / 'SubtitleDesk-1.0.0-Linux-amd64.tar.gz', 'tar', '', False),
-        (ROOT, args.output / 'SubtitleDesk-1.0.0-Source.tar.gz', 'tar', 'SubtitleDesk-1.0.0-Source', True),
-        (ROOT, args.output / 'SubtitleDesk-1.0.0-Source.zip', 'zip', 'SubtitleDesk-1.0.0-Source', True),
+        (args.windows, args.output / 'SubtitleDesk-1.1.0-Windows-x64.zip', 'zip', '', False),
+        (args.linux, args.output / 'SubtitleDesk-1.1.0-Linux-amd64.tar.gz', 'tar', '', False),
+        (ROOT, args.output / 'SubtitleDesk-1.1.0-Source.tar.gz', 'tar', 'SubtitleDesk-1.1.0-Source', True),
+        (ROOT, args.output / 'SubtitleDesk-1.1.0-Source.zip', 'zip', 'SubtitleDesk-1.1.0-Source', True),
     ]
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
         for task in [pool.submit(archive, *job) for job in jobs]:
