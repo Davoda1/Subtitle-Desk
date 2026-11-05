@@ -1,0 +1,100 @@
+name: Build and tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUTF8: '1'
+  QT_QPA_PLATFORM: offscreen
+  QT_MEDIA_BACKEND: ffmpeg
+
+jobs:
+  native:
+    name: Native tests (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            label: Linux
+            platform: linux
+            arch: linux_gcc_64
+            tools: ''
+            executable: subtitledesk
+          - os: windows-2022
+            label: Windows
+            platform: windows
+            arch: win64_mingw
+            tools: tools_mingw1310,qt.tools.win64_mingw1310
+            executable: SubtitleDesk.exe
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Validate source archive boundaries
+        run: python -m unittest discover -s tests -p test_packaging.py -v
+      - name: Install Linux media and packaging tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg ninja-build patchelf libopengl0 libxcb-cursor0
+      - name: Install Windows media fixture tools
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
+            choco install ffmpeg --yes --no-progress --limit-output
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          ffmpeg -version
+          ffprobe -version
+      - name: Install Qt and matching compiler
+        uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4.5.0
+        with:
+          version: '6.8.3'
+          arch: ${{ matrix.arch }}
+          modules: qtmultimedia
+          tools: ${{ matrix.tools }}
+          cache: true
+          setup-python: false
+          add-tools-to-path: true
+      - name: Download and verify pinned offline runtime
+        run: python packaging/fetch_runtime.py ${{ matrix.platform }} build-assets
+      - name: Configure native application and full test suite
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DSUBTITLEDESK_BUILD_TESTS=ON -DSUBTITLEDESK_RUNTIME_ROOT=build-assets/${{ matrix.platform }}
+      - name: Build native application and tests
+        run: cmake --build build --parallel 3
+      # Use the native runner shell, so Git Bash DLLs cannot shadow Qt's MinGW runtime.
+      - name: Run document, decoder, editor, and four-model tests
+        run: ctest --test-dir build --output-on-failure --parallel 2 --output-junit test-results.xml
+      - name: Stage portable package
+        run: python packaging/package.py --platform ${{ matrix.platform }} --binary build/${{ matrix.executable }} --runtime-reference build-assets/${{ matrix.platform }} --output build/staging --compiler g++
+      - name: Validate package layout, runtime, and all model hashes
+        run: python packaging/validate_package.py --platform ${{ matrix.platform }} --path build/staging
+      - name: Launch packaged application with its own runtime
+        run: python packaging/smoke_package.py --platform ${{ matrix.platform }} --path build/staging --screenshot build/package-editor.png
+      - name: Preserve native test reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: SubtitleDesk-${{ matrix.platform }}-verification
+          path: |
+            build/test-results.xml
+            build/Testing/Temporary/LastTest.log
+            build/package-editor.png
+          if-no-files-found: warn
+          retention-days: 14

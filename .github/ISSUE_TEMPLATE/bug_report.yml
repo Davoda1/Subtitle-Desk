@@ -1,0 +1,46 @@
+name: Bug report
+description: Report a reproducible application, import, export, or packaging problem.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please search existing issues first. Use non-sensitive examples and remove personal paths or transcript contents from attachments. For a suspected vulnerability, follow SECURITY.md instead.
+  - type: input
+    id: version
+    attributes:
+      label: Subtitle Desk version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Operating system and package
+      description: Include the OS version and whether this is a portable archive, Debian package, or source build.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Give the smallest sequence that reliably shows the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and observed behavior
+      description: Include the exact error message, if any.
+    validations:
+      required: true
+  - type: textarea
+    id: media
+    attributes:
+      label: Media, model, or format details
+      description: When relevant, include the input codec/container, selected model and language, and import/export format. Attach only a small sample you have permission to share.
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Additional context
+      description: Sanitized screenshots, logs, or reproduction notes.

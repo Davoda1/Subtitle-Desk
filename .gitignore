@@ -1,0 +1,48 @@
+# Build output and acquired runtime components
+/build*/
+/dist/
+/resources/models/
+/resources/bin/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+*.o
+*.obj
+*.a
+*.lib
+*.exe
+*.dll
+*.so
+*.so.*
+*.pdb
+*.zip
+*.tar.gz
+*.deb
+
+# Local application state and projects
+/data/
+/portable.flag
+settings.ini
+*.sdesk
+
+# Local credentials and configuration
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Editor and operating-system files
+.idea/
+.vscode/
+*.user
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Python caches and temporary output
+__pycache__/
+*.py[cod]
+*.log
+*.tmp

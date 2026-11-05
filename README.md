@@ -1,0 +1,123 @@
+![Subtitle Desk — Local transcription. Precise subtitles.](docs/images/banner.png)
+
+# Subtitle Desk
+
+**Turn local audio and video into editable subtitles and synchronized lyrics.**
+
+Subtitle Desk is a native C++/Qt desktop application for transcribing a file, listening back, and correcting its words and timing in one workspace. Four CPU speech models are bundled with the Windows and Linux packages. Recognition runs locally, with no account, API key, telemetry, or model download required after installation.
+
+[Download 1.0.0](https://github.com/Davoda1/Subtitle-Desk/releases/tag/v1.0.0) · [User guide](docs/README.md) · [Build instructions](docs/BUILDING.md) · [Automated checks](https://github.com/Davoda1/Subtitle-Desk/actions) · [Changelog](CHANGELOG.md)
+
+## Features
+
+- **Local transcription:** Cactus Whistle and multilingual Whisper Tiny, Base, and Small, all running on the CPU.
+- **Audio-focused review:** waveform seeking, active-cue highlighting, cue replay and looping, and playback from 0.5× to 2× speed. Listening does not move your text-editing selection.
+- **Direct editing:** change text and start/end times; set boundaries from the playhead; add, split, merge, delete, sort, or shift cues; undo and redo changes.
+- **Review tools:** search cue text, mark checked cues, filter remaining work, and inspect timing and readability warnings.
+- **Portable projects:** save editable `.sdesk` projects with exact timing, review marks, and a link to the original media. Unsaved edits have periodic recovery.
+- **Seven export formats:** SRT, WebVTT, ASS, LRC, TXT, CSV, and JSON.
+- **Desktop appearance:** System, Light, and Dark themes, with a minimum window size of 680 × 540.
+
+## Screenshots
+
+The running application, showing its built-in demonstration content.
+
+### Dark theme
+
+![Subtitle Desk in dark theme, with waveform, timed cues, and the cue editor](docs/images/editor-dark.png)
+
+### Light theme
+
+![Subtitle Desk in light theme, with waveform, timed cues, and the cue editor](docs/images/editor-light.png)
+
+<details>
+<summary>Settings and export options</summary>
+
+**Settings**
+
+![Subtitle Desk settings, including appearance, CPU threads, and installed models](docs/images/settings-dark.png)
+
+**Export options**
+
+![Subtitle Desk export dialog with format selection and a description of the chosen format](docs/images/export-light.png)
+
+</details>
+
+## Download and install
+
+Get the complete package for your platform from [Releases](https://github.com/Davoda1/Subtitle-Desk/releases). Keep the executable and its accompanying folders together.
+
+| Platform | Package | Start |
+| --- | --- | --- |
+| Windows 10/11, x64 | `SubtitleDesk-1.0.0-Windows-x64.zip` | Extract the ZIP and open `SubtitleDesk.exe` at its root. |
+| GNU/Linux, x86-64 | `SubtitleDesk-1.0.0-Linux-amd64.tar.gz` | Extract the archive and run the `subtitledesk` binary at its root. |
+| Debian-compatible GNU/Linux, amd64 | `SubtitleDesk-1.0.0-Linux-amd64.deb` | Install the package and open Subtitle Desk from the application menu. |
+
+On Debian-compatible systems, install the downloaded package with:
+
+```sh
+sudo apt install ./SubtitleDesk-1.0.0-Linux-amd64.deb
+```
+
+The Debian package installs a real executable at `/usr/bin/subtitledesk` and supporting files under `/usr/lib/subtitledesk`. Linux requires a graphical desktop and system audio libraries; Qt, the decoder, and recognition models are included. Build and runtime compatibility details are in the [build guide](docs/BUILDING.md).
+
+The release provides a single SHA-256 checksum manifest. Source archives contain the application, tests, and build scripts; model weights and the Qt SDK are acquired separately when building from source.
+
+## First transcription
+
+1. Choose **Open media…** or drop a local file onto the window. Common inputs include MP4, MKV, WebM, MOV, AVI, MP3, WAV, FLAC, M4A, AAC, OGG, and Opus; support depends on the codec inside the file.
+2. Select a speech model and language. **Whisper Base** is the default; **Auto language** lets the engine identify the language.
+3. Click **Transcribe**. A successful result replaces the cue list and can be undone. Cancelling or failing a job preserves the existing cues.
+4. Play the audio and correct the highlighted cues. Double-click a row to replay it, adjust the start/end fields, and mark it reviewed when finished.
+5. Save a **`.sdesk` project**, then choose **Export…** for the subtitle, lyrics, or transcript format you need.
+
+Subtitle Desk processes the **first audio stream** and does not display video. Playback and recognition use the same temporary 16 kHz mono review track, while the original file remains unchanged. Audio offsets and gaps are retained to preserve alignment with the source timeline.
+
+For a tour without opening a file, choose **Help → Open demonstration**. The [user guide](docs/README.md) explains editing, imports, shortcuts, recovery, and exact format behavior. An offline [HTML manual](docs/README.html) is also included in the runtime packages.
+
+## Bundled models
+
+All four models run without a GPU. The sizes below are the model files alone, rounded to decimal megabytes; they are not total memory requirements.
+
+| Model | Model file | Use and language support |
+| --- | --- | --- |
+| Cactus Whistle | 16.9 MB | Compact recognizer with word timestamps grouped into cues. English, German, French, Spanish, Italian, Dutch, and Polish. |
+| Whisper Tiny, Q5_1 | 32.2 MB | Smallest bundled Whisper model; a fast draft option with multilingual recognition. |
+| Whisper Base, Q5_1 | 59.7 MB | Default Whisper model; a balance of size and processing work, with multilingual recognition. |
+| Whisper Small, Q5_1 | 190.1 MB | Largest bundled Whisper model; an alternative to compare on difficult material, with higher processing requirements. |
+
+Whisper supplies segment timestamps. All recognition timings are estimates and should be checked against the audio. Singing, background music, overlapping voices, and unfamiliar names can require substantial correction. The editor produces line-timed lyrics and subtitles; it does not provide automatic word-level karaoke alignment or speaker diarization.
+
+## Formats
+
+| Format | Import | Export | Timing and purpose |
+| --- | --- | --- | --- |
+| SRT | Yes | Yes | Millisecond start/end times for video subtitles. |
+| WebVTT | Yes | Yes | Millisecond start/end times for web video and compatible players. |
+| ASS / SSA | Yes | ASS | Centisecond start/end times; exports use a neutral subtitle style. |
+| LRC | Yes | Yes | Centisecond line starts for synchronized lyrics; end times are inferred on import. |
+| TXT | — | Yes | Plain transcript without timing. |
+| CSV | — | Yes | Millisecond timing, text, cue IDs, and review marks for spreadsheets. |
+| `.sdesk` / JSON project | Yes | Yes | Editable project data, including exact times, review marks, model, language, and media link. |
+
+Exports use UTF-8. Imported subtitle effects and styling become plain editable text. CSV protects formula-like text cells with an apostrophe; your project text stays unchanged. A project links to media rather than embedding it, so keep the source file available or use **File → Link / replace audio…** after moving it.
+
+## Settings and privacy
+
+Settings and recovery are stored in `%AppData%\SubtitleDesk` on Windows or `~/.config/SubtitleDesk` on Linux, respecting `XDG_CONFIG_HOME`. To keep them beside a portable executable, create an empty `portable.flag` file before launch; the application uses a writable `data` subfolder instead.
+
+Transcription and decoding are local. No cloud service, credential storage, or telemetry is used. Temporary decoded audio is removed when its session ends normally. Saved projects and exports contain your text and may contain media paths, so review them before sharing.
+
+## Build, test, and contribute
+
+The application uses **C++17, CMake 3.22+, and Qt 6.8.3** for the supplied runtime. Build on Linux with GCC or on Windows with the matching MinGW toolchain. The [build guide](docs/BUILDING.md) covers runtime acquisition, native builds, packaging, and tests.
+
+Automated checks cover document formats, editor behavior, media decoding, real speech recognition with all four bundled models, and packaging. See [test scope and limitations](docs/Verification.md) and the [Actions results](https://github.com/Davoda1/Subtitle-Desk/actions) for the checks applicable to a particular commit.
+
+Bug reports and focused contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for reproduction details and the build workflow, or [SECURITY.md](SECURITY.md) for sensitive reports.
+
+## License and dependency provenance
+
+**Copyright (c) 2026 davoda1.** Subtitle Desk is licensed under the [GNU Affero General Public License, version 3 only](LICENSE) (`AGPL-3.0-only`). See [NOTICE](NOTICE) for the application copyright and license notice. The canonical license text is included in the source and runtime packages.
+
+Qt, FFmpeg, the recognition engines, model weights, and their dependencies retain their own licenses. Preserve the bundled notices when redistributing binaries. The [runtime lock](vendor/runtime-lock.json) pins distribution URLs, versions, model sizes, and SHA-256 hashes; the [FFmpeg provenance record](vendor/ffmpeg/provenance.json) identifies its vendored headers. Runtime components are acquired from the checksum-verified public Speech Desk distribution; Subtitle Desk has its own application source and executable. See the [build guide](docs/BUILDING.md#dependency-sources-and-redistribution) and [third-party licenses](vendor/licenses) for details.

@@ -1,0 +1,30 @@
+Subtitle Desk
+Copyright (c) 2026 davoda1
+
+SPDX-License-Identifier: AGPL-3.0-only
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, version 3 only.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+The complete license is provided in LICENSE in the source distribution
+and LICENSE.txt in the runtime packages. This application notice is
+provided in NOTICE in the source distribution and NOTICE.txt in the
+runtime packages.
+
+Project and corresponding application source:
+https://github.com/Davoda1/Subtitle-Desk
+
+Third-party engines, models, libraries, and other components retain
+their own copyright notices and licenses. See vendor/licenses in the
+source distribution and licenses in the runtime packages, together
+with the dependency provenance records. This notice does not replace
+those third-party terms.

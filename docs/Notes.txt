@@ -1,0 +1,67 @@
+SUBTITLE DESK 1.0.0 — RELEASE NOTES
+
+Purpose
+-------
+An offline native desktop editor for turning audio/video files into timed
+subtitles and lyric lines, then reviewing and correcting the result by ear.
+
+Included
+--------
+* Four bundled CPU recognition choices: Cactus Whistle, Whisper Tiny,
+  Whisper Base, and Whisper Small. Whisper models are multilingual Q5_1.
+* Audio-only import from common media containers; no video display.
+* Waveform seeking; 0.5x–2x playback; active-cue highlighting; cue replay
+  and looping without moving the user's text-editing selection.
+* Editable start/end times and text; playhead boundary controls; add,
+  split, merge, delete, shift, undo/redo, search, and review marks.
+* Timing/readability checks and periodic unsaved-project recovery.
+* SRT, WebVTT, ASS, LRC, TXT, CSV, JSON exports and .sdesk projects.
+* System, Light, and Dark themes; 680 x 540 minimum window.
+
+Format and recognition details
+------------------------------
+* Original media is not changed. Projects link to media; they do not
+  embed it. Keep the original file available or relink it from File.
+* Decoding retains audio offsets and gaps relative to the container's
+  playback origin. Sources without timestamps use continuous sample timing.
+  Tracks exceeding the PCM processing limit (about 37 hours) must be split.
+* SRT/VTT/CSV/JSON preserve millisecond timing. ASS and LRC use
+  centiseconds. LRC has starts only, so imported ends are inferred.
+* CSV neutralizes spreadsheet formula prefixes; project text is unchanged.
+* Whistle provides recognized word timing and supports English, German,
+  French, Spanish, Italian, Dutch, and Polish. Whisper provides segment
+  timing and broader multilingual recognition. All timings are estimates.
+* Singing and music can reduce recognition accuracy. Review the words and
+  cue boundaries. LRC output is line-timed; automatic karaoke alignment
+  and speaker diarization are not provided.
+* The first audio stream is used. There is no audio-track selector.
+* Imported formatting/effects become plain text. ASS exports use one
+  neutral style. See README.html for precise format behavior.
+
+Storage
+-------
+Settings and recovery use %AppData%\SubtitleDesk on Windows and
+~/.config/SubtitleDesk on Linux (respecting XDG_CONFIG_HOME). An empty
+portable.flag beside the executable switches them to its writable data
+subfolder. Temporary review audio is
+cleaned up when the session ends normally. Exporting subtitles does not
+replace saving an editable project.
+
+Verification
+------------
+Automated checks cover document formats, editor behavior, native decoding,
+recognition with all four models, and package integrity. See Verification.md
+for their scope and BUILDING.md for reproduction commands. Per-commit
+results are available in the repository's Actions tab:
+https://github.com/Davoda1/Subtitle-Desk/actions
+
+Licensing
+---------
+Application: GNU Affero General Public License, version 3 only
+(AGPL-3.0-only). Copyright (c) 2026 davoda1. The source includes LICENSE
+and NOTICE; runtime packages include LICENSE.txt and NOTICE.txt.
+
+Third-party engines, models, Qt, and multimedia components keep their
+original copyright notices and licenses. Retain the licenses directory,
+application license, and application notice when redistributing binaries.
+Corresponding application source: https://github.com/Davoda1/Subtitle-Desk
